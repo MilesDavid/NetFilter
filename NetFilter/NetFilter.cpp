@@ -2,14 +2,18 @@
 #include "NetFilter.h"
 
 inline void NetFilter::addProtocolFilterRules(ENDPOINT_ID id, PNF_TCP_CONN_INFO pConnInfo) {
+	tPF_FilterFlags sslFlags = (m_settings->selfSigned()) ?
+		FF_SSL_TLS | FF_SSL_TLS_AUTO | FF_SSL_INDICATE_HANDSHAKE_REQUESTS | FF_SSL_SELF_SIGNED_CERTIFICATE :
+		FF_SSL_TLS | FF_SSL_TLS_AUTO | FF_SSL_INDICATE_HANDSHAKE_REQUESTS;
+
 	if (pConnInfo->direction == NF_D_OUT) {
 		pf_addFilter(id, FT_PROXY, FF_READ_ONLY_OUT);
-		pf_addFilter(id, FT_SSL, FF_SSL_TLS | FF_SSL_TLS_AUTO | FF_SSL_INDICATE_HANDSHAKE_REQUESTS);
+		pf_addFilter(id, FT_SSL, sslFlags);
 		pf_addFilter(id, FT_RAW, FF_READ_ONLY_OUT);
 	}
 	else if (pConnInfo->direction == NF_D_IN) {
 		pf_addFilter(id, FT_PROXY, FF_READ_ONLY_IN);
-		pf_addFilter(id, FT_SSL, FF_SSL_TLS | FF_SSL_TLS_AUTO | FF_SSL_INDICATE_HANDSHAKE_REQUESTS);
+		pf_addFilter(id, FT_SSL, sslFlags);
 		pf_addFilter(id, FT_RAW, FF_READ_ONLY_IN);
 	}
 }
@@ -22,16 +26,18 @@ inline bool NetFilter::rawInHandler(ENDPOINT_ID id, PFObject * object) {
 
 	if (rawStream && pFStreamToString(rawStream, buf)) {
 		// Dump packet
-		if (writePacket(L"RAW", L"in", buf)) {
+		if (writePacket("RAW", "in", buf)) {
 			return true;
 		}
 		else {
 			// write to log
+			m_logger->write("Couldn't dump packet", __FUNCTION__);
 			printf_s("[%s] Couldn't dump packet\n", __FUNCTION__);
 		}
 	}
 	else {
 		// write to log
+		m_logger->write("Couldn't read stream", __FUNCTION__);
 		printf_s("[%s] Couldn't read stream\n", __FUNCTION__);
 	}
 
@@ -46,16 +52,18 @@ inline bool NetFilter::rawOutHandler(ENDPOINT_ID id, PFObject * object) {
 
 	if (rawStream && pFStreamToString(rawStream, buf)) {
 		// Dump packet
-		if (writePacket(L"RAW", L"out", buf)) {
+		if (writePacket("RAW", "out", buf)) {
 			return true;
 		}
 		else {
 			// write to log
+			m_logger->write("Couldn't dump packet", __FUNCTION__);
 			printf_s("[%s] Couldn't dump packet\n", __FUNCTION__);
 		}
 	}
 	else {
 		// write to log
+		m_logger->write("Couldn't read stream", __FUNCTION__);
 		printf_s("[%s] Couldn't read stream\n", __FUNCTION__);
 	}
 
@@ -80,6 +88,10 @@ bool NetFilter::pFStreamToString(PFStream * stream, std::string & str) {
 		}
 		else {
 			// write to log
+			TCHAR msg[MAX_PATH] = { 0 };
+			_snprintf_s(msg, MAX_PATH, "Couldn't allocate memory. Errno: %d", errno);
+
+			m_logger->write(msg, __FUNCTION__);
 			printf_s("[%s] Couldn't allocate memory. Errno: %d\n", __FUNCTION__, errno);
 		}
 	}
@@ -87,11 +99,11 @@ bool NetFilter::pFStreamToString(PFStream * stream, std::string & str) {
 	return false;
 }
 
-bool NetFilter::writePacket(std::wstring packetType, std::wstring direction, std::string buf) {
+bool NetFilter::writePacket(std::string packetType, std::string direction, std::string buf) {
 	std::fstream dumpFile;
-	std::wstring wsPacketType(packetType.begin(), packetType.end());
-	std::wstring dumpDir = m_settings->dumpPath() + L"\\" + wsPacketType + L"\\" + direction + L"\\";
-	std::wstring dumpPath = dumpDir + AuxiliaryFuncs::getTimeStamp() + L".txt";
+	std::string sPacketType(packetType.begin(), packetType.end());
+	std::string dumpDir = m_settings->dumpPath() + "\\" + sPacketType + "\\" + direction + "\\";
+	std::string dumpPath = dumpDir + AuxiliaryFuncs::getTimeStamp("%04d-%02d-%02d-%02d-%02d-%02d-%03d") + ".txt";
 
 	dumpFile.open(dumpPath, std::ios::out);
 	if (dumpFile.is_open()) {
@@ -102,13 +114,24 @@ bool NetFilter::writePacket(std::wstring packetType, std::wstring direction, std
 	}
 	else {
 		// write to log
+		TCHAR msg[MAX_PATH] = { 0 };
+		_snprintf_s(msg, MAX_PATH, "Couldn't open file. Errno: %d", errno);
+
+		m_logger->write(msg, __FUNCTION__);
 		printf_s("[%s] Couldn't open file. Errno: %d\n", __FUNCTION__, errno);
 	}
 
 	return false;
 }
 
-NetFilter::NetFilter(const NetFilterSettings * settings) : m_settings(settings), m_connections() {}
+NetFilter::NetFilter(const NetFilterSettings * settings, Logger* logger) :
+	m_Init(false),
+	m_settings(settings),
+	m_connections(),
+	m_logger(logger)
+{
+	m_Init = true;
+}
 
 NetFilter::~NetFilter() {}
 
@@ -130,25 +153,35 @@ bool NetFilter::refreshFilters() {
 }
 
 void NetFilter::threadStart() {
+	m_logger->write("Netfilter thread started", __FUNCTION__);
 	printf_s("[%s]\n", __FUNCTION__);
 }
 
 void NetFilter::threadEnd() {}
 
 void NetFilter::tcpConnected(ENDPOINT_ID id, PNF_TCP_CONN_INFO pConnInfo) {
-	std::wstring wsProcessName;
+	std::string sProcessName;
 	DWORD pid = pConnInfo->processId;
-	if (AuxiliaryFuncs::getProcessName(pid, wsProcessName, true) == ERROR_SUCCESS) {
-		std::string sProcName(wsProcessName.begin(), wsProcessName.end());
-		AuxiliaryFuncs::toLower(sProcName);
+	if (AuxiliaryFuncs::getProcessName(pid, sProcessName, true) == ERROR_SUCCESS) {
+		AuxiliaryFuncs::toLower(sProcessName);
 
-		if (pid != 4 && m_settings->findProcess(sProcName)) {
+		if (
+#ifndef FILTER_ANY_PROCESS
+			pid != 4 && m_settings->findProcess(sProcessName)
+#else
+			true
+#endif
+			) {
 			addProtocolFilterRules(id, pConnInfo);
 			m_connections.insert(std::make_pair(id, TcpConnectionInfo(pConnInfo)));
 		}
 	}
 	else {
 		// write to log
+		TCHAR msg[MAX_PATH] = { 0 };
+		_snprintf_s(msg, MAX_PATH, "Couldn't get procname by pid: %d", pid);
+
+		m_logger->write(msg, __FUNCTION__);
 		printf_s("[%s] Couldn't get procname by pid: %d\n", __FUNCTION__, pid);
 	}
 }

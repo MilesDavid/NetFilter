@@ -3,7 +3,7 @@ class Noncopyable {
 private:
 	Noncopyable(const Noncopyable&) {};
 	Noncopyable& operator=(const Noncopyable&) {};
-public:
+protected:
 	Noncopyable() {};
 	virtual ~Noncopyable() {};
 };

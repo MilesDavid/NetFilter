@@ -4,9 +4,30 @@
 #include "stdafx.h"
 #include "NetMon.h"
 
-#define ENABLE_CONSOLE
+#ifndef ENABLE_CONSOLE
 
-#ifdef ENABLE_CONSOLE
+#define NETMON_LIB
+#ifdef NETMON_LIB
+#define NETMON_EXPORT extern __declspec(dllexport)
+#else
+#define NETMON_EXPORT __declspec(dllimport)
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+	NETMON_EXPORT NetMon* __cdecl NetMonCreate() { return new(std::nothrow) NetMon(); }
+	NETMON_EXPORT void __cdecl NetMonFree(NetMon* netMon) { if (netMon) delete netMon; }
+	NETMON_EXPORT bool __cdecl NetMonStart(NetMon* netMon) { return (netMon) ? netMon->Start() : false; }
+	NETMON_EXPORT bool __cdecl NetMonIsStarted(NetMon* netMon) { return (netMon) ? netMon->NetfilterStarted() : false; }
+	NETMON_EXPORT void __cdecl NetMonStop(NetMon* netMon) { if (netMon) netMon->Stop(); }
+	NETMON_EXPORT void __cdecl NetMonRefreshSettings(NetMon* netMon) { if (netMon) netMon->RefreshSettings(); }
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
+#else
 
 int main() {
 	NetMon* netMon = new NetMon();
@@ -16,15 +37,12 @@ int main() {
 	else {
 		std::cout << "Error during starting NetFilter.." << std::endl;
 	}
+
 	SleepEx(INFINITE, FALSE);
+
 	delete netMon;
-
-	return 0;
+	netMon = nullptr;
 }
 
-#else
-bool __cdecl createNetFilter() {
-
-}
 #endif
 

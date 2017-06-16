@@ -12,6 +12,11 @@
 
 #define NOMINMAX
 
+#define ENABLE_NLOHMANN_JSON
+
+//#define FILTER_ANY_PROCESS
+//#define ENABLE_CONSOLE
+
 #pragma region Windows sockets
 	#define _WINSOCKAPI_
 	#define _WINSOCK_DEPRECATED_NO_WARNINGS
@@ -38,10 +43,24 @@
 #pragma endregion
 
 #pragma region JSON
-	#include "json.hpp"
-	using nlohmann::json;
+	#ifdef ENABLE_NLOHMANN_JSON
+		#include "json.hpp"
+		using nlohmann::json;
+	#endif // NLOHMANN_JSON
 #pragma endregion
 
 #pragma region Misc
 	#include "Noncopyable.h"
 #pragma endregion
+
+#ifdef FUTURE
+	typedef std::basic_string<TCHAR, std::char_traits<TCHAR> > tstring;
+
+	#ifdef UNICODE
+		#define to_lower(x) towlower(x)
+		#define tprintf_s(...) wprintf_s(...)
+	#else
+		#define to_lower(x) tolower(x)
+		#define tprintf_s(...) printf_s(...)
+	#endif
+#endif

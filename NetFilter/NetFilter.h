@@ -4,6 +4,7 @@
 #include "NetFilterSettings.h"
 #include "TcpConnectionInfo.h"
 #include "AuxiliaryFuncs.h"
+#include "Logger.h"
 
 using namespace nfapi;
 using namespace ProtocolFilters;
@@ -19,14 +20,19 @@ private:
 #pragma endregion
 
 	bool pFStreamToString(PFStream * stream, std::string& str);
-	bool writePacket(std::wstring packetType, std::wstring direction, std::string buf);
+	bool writePacket(std::string packetType, std::string direction, std::string buf);
 
+	bool m_Init;
 	const NetFilterSettings* m_settings;
 	std::map<ENDPOINT_ID, TcpConnectionInfo> m_connections;
+	Logger* m_logger;
 public:
-	NetFilter(const NetFilterSettings* settings);
+	NetFilter(const NetFilterSettings* settings, Logger* logger);
 	~NetFilter();
 
+	const bool isInit() const {
+		return m_Init;
+	}
 	bool refreshFilters();
 
 	virtual void threadStart();
