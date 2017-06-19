@@ -28,7 +28,6 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.TreeNode treeNode1 = new System.Windows.Forms.TreeNode("Computer");
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.filteredAppsTreeView = new System.Windows.Forms.TreeView();
             this.startFilterButton = new System.Windows.Forms.Button();
@@ -39,6 +38,8 @@
             this.mainStatusStrip = new System.Windows.Forms.StatusStrip();
             this.filterStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.settingsStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
+            this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.mainStatusStrip.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -47,10 +48,6 @@
             this.filteredAppsTreeView.AllowDrop = true;
             this.filteredAppsTreeView.Location = new System.Drawing.Point(13, 13);
             this.filteredAppsTreeView.Name = "filteredAppsTreeView";
-            treeNode1.Name = "root";
-            treeNode1.Text = "Computer";
-            this.filteredAppsTreeView.Nodes.AddRange(new System.Windows.Forms.TreeNode[] {
-            treeNode1});
             this.filteredAppsTreeView.Size = new System.Drawing.Size(399, 194);
             this.filteredAppsTreeView.TabIndex = 0;
             this.filteredAppsTreeView.DragDrop += new System.Windows.Forms.DragEventHandler(this.filteredAppsTreeView_DragDrop);
@@ -67,7 +64,7 @@
             this.startFilterButton.TabIndex = 1;
             this.startFilterButton.Text = "Start";
             this.startFilterButton.UseVisualStyleBackColor = true;
-            this.startFilterButton.Click += new System.EventHandler(this.startFilterButton_Click);
+            this.startFilterButton.Click += new System.EventHandler(this.startStopFilterButton_Click);
             // 
             // stopFilterButton
             // 
@@ -138,6 +135,12 @@
             this.settingsStatusLabel.Size = new System.Drawing.Size(113, 19);
             this.settingsStatusLabel.Text = "Settings not readed";
             // 
+            // openFileDialog
+            // 
+            this.openFileDialog.DefaultExt = "exe";
+            this.openFileDialog.Filter = "Executable files|*.exe";
+            this.openFileDialog.Multiselect = true;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -173,6 +176,8 @@
         private System.Windows.Forms.StatusStrip mainStatusStrip;
         private System.Windows.Forms.ToolStripStatusLabel filterStatusLabel;
         private System.Windows.Forms.ToolStripStatusLabel settingsStatusLabel;
+        private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog;
+        private System.Windows.Forms.OpenFileDialog openFileDialog;
     }
 }
 

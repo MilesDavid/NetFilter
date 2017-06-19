@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Windows.Forms;
 
@@ -22,9 +23,104 @@ namespace NetFilterApp
         enum NetFilterStatus
         {
             NotStarted,
+            Ready,
             Started,
             Stopped,
             Failed
+        }
+
+        bool directoryIsChild(string expectedChild, ref TreeNode parent)
+        {
+            bool result = false;
+            parent = null;
+
+            TreeNode[] foundNodes = null;
+            while (expectedChild != null)
+            {
+                foundNodes = root.Nodes.Find(expectedChild, true);
+                if (foundNodes.Length > 0)
+                {
+                    parent = foundNodes[0];
+                    return true;
+                }
+                expectedChild = Path.GetDirectoryName(expectedChild);
+            }
+
+            return result;
+        }
+
+        void RemoveEmptyDirectoryNode(TreeNode node, ref List<TreeNode> toRemoveNodeList)
+        {
+            foreach (TreeNode childNode in node.Nodes)
+            {
+                RemoveEmptyDirectoryNode(childNode, ref toRemoveNodeList);
+                bool endWithExeExt = childNode.Name.EndsWith(".exe");
+                if (!endWithExeExt && childNode.Nodes.Count == 0)
+                {
+                    toRemoveNodeList.Add(childNode);
+                }
+            }
+        }
+
+        void AddDirectory(string directoryPath)
+        {
+            try
+            {
+                TreeNode[] foundNodes = root.Nodes.Find(directoryPath, true);
+                //if (foundNodes.Length == 0)
+                //{
+                    TreeNode parentNode = null, currentNode = root;
+
+                    string textNode = directoryPath;
+                    if (directoryIsChild(directoryPath, ref currentNode))
+                    {
+                        textNode = Path.GetFileName(directoryPath);
+                    }
+                    else
+                    {
+                        currentNode = (foundNodes.Length > 0) ? foundNodes[0] : root;
+                    }
+                    parentNode = currentNode.Nodes.Add(directoryPath, textNode);
+
+                    foreach (var subdir in
+                        Directory.GetDirectories(directoryPath, "*", SearchOption.TopDirectoryOnly))
+                    {
+                        AddDirectory(subdir);
+                    }
+
+                    foreach (var process in
+                        Directory.GetFiles(directoryPath, "*.exe", SearchOption.TopDirectoryOnly))
+                    {
+                        AddProcess(process, parentNode);
+                    }
+                //}
+            }
+            catch(Exception e)
+            {
+                logger.write(e.Message);
+            }
+        }
+
+        void AddProcess(string processPath, TreeNode parent=null)
+        {
+            TreeNode[] foundNodes = root.Nodes.Find(processPath, true);
+            if (foundNodes.Length == 0)
+            {
+                string dirName = Path.GetDirectoryName(processPath);
+                string fileName = Path.GetFileName(processPath);
+
+                settings.addTracingProcess(processPath);
+                if (foundNodes.Length == 0)
+                {
+                    if (parent == null)
+                    {
+                        TreeNode foundParentNode= null;
+                        parent = (directoryIsChild(dirName, ref foundParentNode)) ?  
+                            foundParentNode : root.Nodes.Add(dirName, dirName);
+                    }
+                    parent.Nodes.Add(processPath, fileName);
+                }
+            }
         }
 
         bool RefreshSettings()
@@ -52,7 +148,7 @@ namespace NetFilterApp
             isInit = false;
             settings = new Settings(configPath, logger);
 
-            root = filteredAppsTreeView.Nodes.Find("root", true)[0];
+            root = filteredAppsTreeView.Nodes.Add("root", Environment.MachineName);
         }
 
         #region MainForm handlers
@@ -83,27 +179,7 @@ namespace NetFilterApp
 
         void updateFormItems(NetFilterStatus status)
         {
-            bool started = status == NetFilterStatus.Started;
-
-            switch (status)
-            {
-                case NetFilterStatus.Started:
-                    filterStatusLabel.Text = "Filter started..";
-                    break;
-
-                case NetFilterStatus.Stopped:
-                    filterStatusLabel.Text = "Filter stopped..";
-                    break;
-
-                case NetFilterStatus.NotStarted:
-                    break;
-
-                case NetFilterStatus.Failed:
-                    filterStatusLabel.Text = "Filter fails during start..";
-                    break;
-            }
-
-            if (started)
+            if (status == NetFilterStatus.Started)
             {
                 stopFilterButton.Enabled = true;
                 refreshSettingsButton.Enabled = true;
@@ -120,7 +196,30 @@ namespace NetFilterApp
 
                 stopFilterButton.Enabled = false;
                 refreshSettingsButton.Enabled = false;
+            }
 
+            switch (status)
+            {
+                case NetFilterStatus.NotStarted:
+                    startFilterButton.Enabled = false;
+                    break;
+
+                case NetFilterStatus.Ready:
+                    filterStatusLabel.Text = "Filter ready to start";
+                    root.ExpandAll();
+                    break;
+
+                case NetFilterStatus.Started:
+                    filterStatusLabel.Text = "Filter started..";
+                    break;
+
+                case NetFilterStatus.Stopped:
+                    filterStatusLabel.Text = "Filter stopped..";
+                    break;
+
+                case NetFilterStatus.Failed:
+                    filterStatusLabel.Text = "Filter fails during start..";
+                    break;
             }
         }
 
@@ -164,7 +263,7 @@ namespace NetFilterApp
 
         #region button handlers
 
-        private void startFilterButton_Click(object sender, EventArgs e)
+        private void startStopFilterButton_Click(object sender, EventArgs e)
         {
             if (RefreshSettings() && NetFilterWrap.NetMonStart(netMon))
             {
@@ -195,12 +294,27 @@ namespace NetFilterApp
 
         private void addFolderButton_Click(object sender, EventArgs e)
         {
-
+            DialogResult dialogResult = folderBrowserDialog.ShowDialog();
+            if (dialogResult == DialogResult.OK)
+            {
+                AddDirectory(folderBrowserDialog.SelectedPath);
+                updateFormItems(NetFilterStatus.Ready);
+            }
         }
 
         private void addAppButton_Click(object sender, EventArgs e)
         {
-
+            DialogResult dialogResult = openFileDialog.ShowDialog();
+            {
+                if (dialogResult == DialogResult.OK)
+                {
+                    foreach (var process in openFileDialog.FileNames)
+                    {
+                        AddProcess(process);
+                        updateFormItems(NetFilterStatus.Ready);
+                    }
+                }
+            }
         }
 
         private void refreshSettingsButton_Click(object sender, EventArgs e)
@@ -217,34 +331,32 @@ namespace NetFilterApp
             string[] draggedItems = (string[])e.Data.GetData(DataFormats.FileDrop, true);
             foreach (string item in draggedItems)
             {
-                if (settings.isExistsTracingProcess(item)) {
-                    FileAttributes attr = File.GetAttributes(item);
-                    if (attr == FileAttributes.Directory)
+                FileAttributes attr = File.GetAttributes(item);
+                if ((attr & FileAttributes.Directory) == FileAttributes.Directory)
+                {
+                    AddDirectory(item);
+                    updateFormItems(NetFilterStatus.Ready);
+                }
+                else if (Path.GetExtension(item) == ".exe")
+                {
+                    if (!settings.isExistsTracingProcess(item))
                     {
-                        //MessageBox.Show(string.Format("{0} is directory", item));
-                        //recursive adding
-                        //filteredAppsTreeView.Nodes.Add(item);
-                        //settings.addTracingProcess()
-                    }
-                    else if (Path.GetExtension(item) == ".exe")
-                    {
-                        string dirName = Path.GetDirectoryName(item);
-                        string fileName = Path.GetFileName(item);
-
-                        settings.addTracingProcess(item);
-                        TreeNode node = null;
-                        if (!root.Nodes.ContainsKey(dirName))
-                        {
-                            node = root.Nodes.Add(dirName, dirName);
-                            node.Nodes.Add(fileName);
-                        }
-                        else
-                        {
-                            int i = root.Nodes.IndexOfKey(dirName);
-                            root.Nodes[i].Nodes.Add(item, fileName);
-                        }
+                        AddProcess(item);
+                        updateFormItems(NetFilterStatus.Ready);
                     }
                 }
+            }
+
+            List<TreeNode> toRemove = new List<TreeNode>();
+            RemoveEmptyDirectoryNode(root, ref toRemove);
+            while (toRemove.Count > 0)
+            {
+                foreach (var removeItem in toRemove)
+                {
+                    removeItem.Remove();
+                }
+                toRemove.Clear();
+                RemoveEmptyDirectoryNode(root, ref toRemove);
             }
         }
 
@@ -263,7 +375,6 @@ namespace NetFilterApp
 
         private void filteredAppsTreeView_DragOver(object sender, DragEventArgs e)
         {
-            //e.Effect = DragDropEffects.None;
         }
 
         #endregion

@@ -48,7 +48,7 @@ namespace NetFilterApp
                 return false;
             }
 
-            if (isExistsTracingProcess(process))
+            if (!isExistsTracingProcess(process))
             {
                 config.TracingProcesses.Add(process);
                 return true;
@@ -69,7 +69,7 @@ namespace NetFilterApp
 
         public bool isExistsTracingProcess(string process)
         {
-            return config.TracingProcesses.IndexOf(process) == -1;
+            return config.TracingProcesses.IndexOf(process) != -1;
         }
 
         //public bool addTracingFolder(string folder)
