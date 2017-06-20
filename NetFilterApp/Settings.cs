@@ -72,16 +72,10 @@ namespace NetFilterApp
             return config.TracingProcesses.IndexOf(process) != -1;
         }
 
-        //public bool addTracingFolder(string folder)
-        //{
-        //    //if (System.IO.Directory.Exists(folder))
-        //    //{
-        //    //    //tracingProcesses.Add(folder);
-        //    //    return true;
-        //    //}
-
-        //    return false;
-        //}
+        public void clearTracingProcessList()
+        {
+            config.TracingProcesses.Clear();
+        }
 
         public bool read()
         {

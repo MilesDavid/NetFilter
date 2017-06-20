@@ -20,5 +20,8 @@ public:
 	const bool isInit() const {
 		return m_Init;
 	}
+	const std::string logPath() const {
+		return m_logName;
+	}
 };
 

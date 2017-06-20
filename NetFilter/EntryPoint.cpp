@@ -22,6 +22,9 @@ extern "C" {
 	NETMON_EXPORT bool __cdecl NetMonIsStarted(NetMon* netMon) { return (netMon) ? netMon->NetfilterStarted() : false; }
 	NETMON_EXPORT void __cdecl NetMonStop(NetMon* netMon) { if (netMon) netMon->Stop(); }
 	NETMON_EXPORT void __cdecl NetMonRefreshSettings(NetMon* netMon) { if (netMon) netMon->RefreshSettings(); }
+	NETMON_EXPORT void __cdecl NetMonLogPath(NetMon* netMon, char* buf, size_t size) {
+		if (netMon) { strcpy_s(buf, size, netMon->LogPath().c_str()); }
+	}
 
 #ifdef __cplusplus
 }

@@ -34,6 +34,11 @@ namespace NetFilterApp
         {
             SafeNativeMethods.NetMonRefreshSettings(pNetMon);
         }
+
+        public static void NetMonLogPath(IntPtr pNetMon, byte[] logPath, uint size)
+        {
+            SafeNativeMethods.NetMonLogPath(pNetMon, logPath, size);
+        }
     }
 
     internal static class SafeNativeMethods
@@ -55,5 +60,8 @@ namespace NetFilterApp
 
         [DllImport("NetFilter.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void NetMonRefreshSettings(IntPtr pNetMon);
+
+        [DllImport("NetFilter.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern string NetMonLogPath(IntPtr pNetMon, byte[] logPath, uint size);
     }
 }

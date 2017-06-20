@@ -8,3 +8,5 @@ C:\Users\borisov.LANAGENT\Documents\Visual Studio 2015\Projects\NetFilter\NetFil
 C:\Users\borisov.LANAGENT\Documents\Visual Studio 2015\Projects\NetFilter\NetFilterApp\obj\Debug\NetFilterApp.csproj.GenerateResource.Cache
 C:\Users\borisov.LANAGENT\Documents\Visual Studio 2015\Projects\NetFilter\NetFilterApp\obj\Debug\NetFilterApp.exe
 C:\Users\borisov.LANAGENT\Documents\Visual Studio 2015\Projects\NetFilter\NetFilterApp\obj\Debug\NetFilterApp.pdb
+C:\Users\borisov.LANAGENT\Documents\Visual Studio 2015\Projects\NetFilter\NetFilterApp\obj\Debug\NetFilterApp.csprojResolveAssemblyReference.cache
+C:\Users\borisov.LANAGENT\Documents\Visual Studio 2015\Projects\NetFilter\NetFilterApp\obj\Debug\NetFilterApp.LogForm.resources

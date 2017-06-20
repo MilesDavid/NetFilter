@@ -17,6 +17,7 @@ namespace NetFilterApp
         Settings settings;
         Logger logger;
         TreeNode root;
+        LogForm logForm;
 
         #endregion
 
@@ -29,6 +30,7 @@ namespace NetFilterApp
             Failed
         }
 
+        #region TreeView handlers
         bool directoryIsChild(string expectedChild, ref TreeNode parent)
         {
             bool result = false;
@@ -49,15 +51,26 @@ namespace NetFilterApp
             return result;
         }
 
-        void RemoveEmptyDirectoryNode(TreeNode node, ref List<TreeNode> toRemoveNodeList)
+        void GetFilesNodes(TreeNode node, ref List<TreeNode> filesNodesList)
         {
             foreach (TreeNode childNode in node.Nodes)
             {
-                RemoveEmptyDirectoryNode(childNode, ref toRemoveNodeList);
-                bool endWithExeExt = childNode.Name.EndsWith(".exe");
-                if (!endWithExeExt && childNode.Nodes.Count == 0)
+                GetEmptyDirectoryNodes(childNode, ref filesNodesList);
+                if ((string)childNode.Tag == "File")
                 {
-                    toRemoveNodeList.Add(childNode);
+                    filesNodesList.Add(childNode);
+                }
+            }
+        }
+
+        void GetEmptyDirectoryNodes(TreeNode node, ref List<TreeNode> emptyNodesList)
+        {
+            foreach (TreeNode childNode in node.Nodes)
+            {
+                GetEmptyDirectoryNodes(childNode, ref emptyNodesList);
+                if ((string)childNode.Tag == "Directory" && childNode.Nodes.Count == 0)
+                {
+                    emptyNodesList.Add(childNode);
                 }
             }
         }
@@ -69,33 +82,44 @@ namespace NetFilterApp
                 TreeNode[] foundNodes = root.Nodes.Find(directoryPath, true);
                 //if (foundNodes.Length == 0)
                 //{
-                    TreeNode parentNode = null, currentNode = root;
+                TreeNode parentNode = null, currentNode = root;
 
-                    string textNode = directoryPath;
-                    if (directoryIsChild(directoryPath, ref currentNode))
-                    {
-                        textNode = Path.GetFileName(directoryPath);
-                    }
-                    else
-                    {
-                        currentNode = (foundNodes.Length > 0) ? foundNodes[0] : root;
-                    }
-                    parentNode = currentNode.Nodes.Add(directoryPath, textNode);
+                string textNode = directoryPath;
+                if (directoryIsChild(directoryPath, ref currentNode))
+                {
+                    textNode = Path.GetFileName(directoryPath);
+                }
+                else
+                {
+                    currentNode = (foundNodes.Length > 0) ? foundNodes[0] : root;
+                }
 
-                    foreach (var subdir in
-                        Directory.GetDirectories(directoryPath, "*", SearchOption.TopDirectoryOnly))
-                    {
-                        AddDirectory(subdir);
-                    }
+                parentNode = currentNode.Nodes.Add(directoryPath, textNode);
 
-                    foreach (var process in
-                        Directory.GetFiles(directoryPath, "*.exe", SearchOption.TopDirectoryOnly))
-                    {
-                        AddProcess(process, parentNode);
-                    }
+                parentNode.Tag = "Directory";
+                parentNode.ContextMenuStrip = folderContextMenuStrip;
+
+                currentNode.Expand();
+
+                foreach (var subdir in
+                    Directory.GetDirectories(directoryPath, "*", SearchOption.TopDirectoryOnly))
+                {
+                    AddDirectory(subdir);
+                }
+
+                foreach (var process in
+                    Directory.GetFiles(directoryPath, "*.exe", SearchOption.TopDirectoryOnly))
+                {
+                    AddProcess(process, parentNode);
+                }
+
+                if (currentNode.Nodes.Count == 0)
+                {
+                    DeleteSelectedTreeItem(parentNode);
+                }
                 //}
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 logger.write(e.Message);
             }
@@ -117,9 +141,81 @@ namespace NetFilterApp
                         TreeNode foundParentNode= null;
                         parent = (directoryIsChild(dirName, ref foundParentNode)) ?  
                             foundParentNode : root.Nodes.Add(dirName, dirName);
+                        parent.Tag = "Directory";
+                        parent.ContextMenuStrip = folderContextMenuStrip;
                     }
-                    parent.Nodes.Add(processPath, fileName);
+
+                    TreeNode fileNode = parent.Nodes.Add(processPath, fileName);
+
+                    fileNode.Tag = "File";
+                    fileNode.ContextMenuStrip = fileContextMenuStrip;
+
+                    parent.Parent.Expand();
+                    parent.Expand();
                 }
+            }
+        }
+
+        void DeleteSelectedTreeItem(TreeNode node)
+        {
+            TreeNode parentNode = node.Parent;
+
+            if ((string)node.Tag == "File")
+            {
+                List<TreeNode> fileNodes = new List<TreeNode>();
+
+                GetFilesNodes(node, ref fileNodes);
+                foreach (TreeNode fileNode in fileNodes)
+                {
+                    settings.deleteTracingProcess(fileNode.Name);
+                }
+            }
+
+            node.Remove();
+
+            var topNode = root;
+
+            if (parentNode != null && parentNode != root
+                && parentNode.Nodes.Count == 0)
+            {
+                parentNode.Remove();
+            }
+
+            if (root.Nodes.Count == 0)
+            {
+                updateFormItems(NetFilterStatus.NotStarted);
+            }
+        }
+
+        #endregion
+
+        #region Netfilter methods
+        void StartNetFilter()
+        {
+            if (RefreshSettings() && NetFilterWrap.NetMonStart(netMon))
+            {
+                updateFormItems(NetFilterStatus.Started);
+                logger.write("Netfilter started..");
+            }
+            else
+            {
+                updateFormItems(NetFilterStatus.Failed);
+                logger.write("Error during starting netfilter..");
+            }
+        }
+
+        void StopNetfilter()
+        {
+            if (NetFilterWrap.NetMonIsStarted(netMon))
+            {
+                NetFilterWrap.NetMonStop(netMon);
+                updateFormItems(NetFilterStatus.Stopped);
+
+                logger.write("Netfilter has been stopped..");
+            }
+            else
+            {
+                logger.write("Netfilter is not started..");
             }
         }
 
@@ -138,6 +234,7 @@ namespace NetFilterApp
 
             return settingsWrited;
         }
+        #endregion
 
         void InitializeFields()
         {
@@ -149,6 +246,8 @@ namespace NetFilterApp
             settings = new Settings(configPath, logger);
 
             root = filteredAppsTreeView.Nodes.Add("root", Environment.MachineName);
+
+            logForm = new LogForm();
         }
 
         #region MainForm handlers
@@ -201,12 +300,12 @@ namespace NetFilterApp
             switch (status)
             {
                 case NetFilterStatus.NotStarted:
+                    filterStatusLabel.Text = "Filter not ready";
                     startFilterButton.Enabled = false;
                     break;
 
                 case NetFilterStatus.Ready:
                     filterStatusLabel.Text = "Filter ready to start";
-                    root.ExpandAll();
                     break;
 
                 case NetFilterStatus.Started:
@@ -220,6 +319,31 @@ namespace NetFilterApp
                 case NetFilterStatus.Failed:
                     filterStatusLabel.Text = "Filter fails during start..";
                     break;
+            }
+        }
+
+        private void AddDirectoryHandler()
+        {
+            DialogResult dialogResult = folderBrowserDialog.ShowDialog();
+            if (dialogResult == DialogResult.OK)
+            {
+                AddDirectory(folderBrowserDialog.SelectedPath);
+                updateFormItems(NetFilterStatus.Ready);
+            }
+        }
+
+        private void AddProcessHandler()
+        {
+            DialogResult dialogResult = openFileDialog.ShowDialog();
+            {
+                if (dialogResult == DialogResult.OK)
+                {
+                    foreach (var process in openFileDialog.FileNames)
+                    {
+                        AddProcess(process);
+                        updateFormItems(NetFilterStatus.Ready);
+                    }
+                }
             }
         }
 
@@ -244,6 +368,14 @@ namespace NetFilterApp
                 return;
             }
 
+            foreach (var process in settings.TracingProcesses)
+            {
+                AddProcess(process);
+            }
+
+            generateSelfsignedCertificateToolStripMenuItem.Checked = settings.CertSelfSigned;
+
+            updateFormItems(NetFilterStatus.Ready);
             settingsStatusLabel.Text = "Settings readed..";
         }
 
@@ -261,60 +393,49 @@ namespace NetFilterApp
         }
         #endregion
 
-        #region button handlers
-
-        private void startStopFilterButton_Click(object sender, EventArgs e)
+        void ShowLog()
         {
-            if (RefreshSettings() && NetFilterWrap.NetMonStart(netMon))
-            {
-                updateFormItems(NetFilterStatus.Started);
-                logger.write("Netfilter started..");
-            }
-            else
-            {
-                updateFormItems(NetFilterStatus.Failed);
-                logger.write("Error during starting netfilter..");
-            }
+            logForm.OpenLogPath("");
+            logForm.Visible = true;
+        }
+
+        #region Button handlers
+
+        private void startFilterButton_Click(object sender, EventArgs e)
+        {
+            StartNetFilter();
         }
 
         private void stopFilterButton_Click(object sender, EventArgs e)
         {
-            if (NetFilterWrap.NetMonIsStarted(netMon))
-            {
-                NetFilterWrap.NetMonStop(netMon);
-                updateFormItems(NetFilterStatus.Stopped);
-
-                logger.write("Netfilter has been stopped..");
-            }
-            else
-            {
-                logger.write("Netfilter is not started..");
-            }
+            StopNetfilter();
         }
 
         private void addFolderButton_Click(object sender, EventArgs e)
         {
-            DialogResult dialogResult = folderBrowserDialog.ShowDialog();
-            if (dialogResult == DialogResult.OK)
-            {
-                AddDirectory(folderBrowserDialog.SelectedPath);
-                updateFormItems(NetFilterStatus.Ready);
-            }
+            //DialogResult dialogResult = folderBrowserDialog.ShowDialog();
+            //if (dialogResult == DialogResult.OK)
+            //{
+            //    AddDirectory(folderBrowserDialog.SelectedPath);
+            //    updateFormItems(NetFilterStatus.Ready);
+            //}
+            AddDirectoryHandler();
         }
 
         private void addAppButton_Click(object sender, EventArgs e)
         {
-            DialogResult dialogResult = openFileDialog.ShowDialog();
-            {
-                if (dialogResult == DialogResult.OK)
-                {
-                    foreach (var process in openFileDialog.FileNames)
-                    {
-                        AddProcess(process);
-                        updateFormItems(NetFilterStatus.Ready);
-                    }
-                }
-            }
+            //DialogResult dialogResult = openFileDialog.ShowDialog();
+            //{
+            //    if (dialogResult == DialogResult.OK)
+            //    {
+            //        foreach (var process in openFileDialog.FileNames)
+            //        {
+            //            AddProcess(process);
+            //            updateFormItems(NetFilterStatus.Ready);
+            //        }
+            //    }
+            //}
+            AddProcessHandler();
         }
 
         private void refreshSettingsButton_Click(object sender, EventArgs e)
@@ -347,16 +468,16 @@ namespace NetFilterApp
                 }
             }
 
-            List<TreeNode> toRemove = new List<TreeNode>();
-            RemoveEmptyDirectoryNode(root, ref toRemove);
-            while (toRemove.Count > 0)
+            List<TreeNode> emptyDirectoryNodes = new List<TreeNode>();
+            GetEmptyDirectoryNodes(root, ref emptyDirectoryNodes);
+            while (emptyDirectoryNodes.Count > 0)
             {
-                foreach (var removeItem in toRemove)
+                foreach (var removeItem in emptyDirectoryNodes)
                 {
                     removeItem.Remove();
                 }
-                toRemove.Clear();
-                RemoveEmptyDirectoryNode(root, ref toRemove);
+                emptyDirectoryNodes.Clear();
+                GetEmptyDirectoryNodes(root, ref emptyDirectoryNodes);
             }
         }
 
@@ -369,14 +490,96 @@ namespace NetFilterApp
 
         }
 
-        private void filteredAppsTreeView_DragLeave(object sender, EventArgs e)
+        #endregion
+
+        private void toolStripMenuItemDeleteFolder_Click(object sender, EventArgs e)
         {
+            DeleteSelectedTreeItem(filteredAppsTreeView.SelectedNode);
         }
 
-        private void filteredAppsTreeView_DragOver(object sender, DragEventArgs e)
+        private void toolStripMenuItemDeleteFile_Click(object sender, EventArgs e)
         {
+            DeleteSelectedTreeItem(filteredAppsTreeView.SelectedNode);
         }
 
+        private void filteredAppsTreeView_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                filteredAppsTreeView.SelectedNode = filteredAppsTreeView.GetNodeAt(e.X, e.Y);
+            }
+        }
+
+        #region Main menu handlers
+        private void startToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            StartNetFilter();
+        }
+
+        private void stopToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            StopNetfilter();
+        }
+
+        private void refreshSettingsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            RefreshSettings();
+        }
+
+        private void generateSelfsignedCertificateToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            bool certSelfSigned = generateSelfsignedCertificateToolStripMenuItem.Checked;
+            settings.CertSelfSigned = certSelfSigned;
+            generateSelfsignedCertificateToolStripMenuItem.Checked = !certSelfSigned;
+        }
+
+        private void applicationLogToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            logForm.OpenLogPath(logger.LogPath);
+        }
+
+        private void netfilterLogToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //uint bufSize = 1024;
+            //byte[] buf = new byte[bufSize];
+
+            //NetFilterWrap.NetMonLogPath(netMon, buf, bufSize);
+
+            //logForm.OpenLogPath(System.Text.Encoding.ASCII.GetString(buf));
+            logForm.OpenLogPath(@"C:\Users\borisov.LANAGENT\Desktop\brain_cache.txt");
+        }
+
+        private void addCatalogToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            AddDirectoryHandler();
+        }
+
+        private void addAppToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            AddProcessHandler();
+        }
+
+        private void clearListToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            List<TreeNode> removeNodeList = new List<TreeNode>();
+            foreach (TreeNode child in root.Nodes)
+            {
+                removeNodeList.Add(child);
+            }
+
+            foreach (var removeNode in removeNodeList)
+            {
+                removeNode.Remove();
+            }
+                  
+            settings.clearTracingProcessList();
+            updateFormItems(NetFilterStatus.NotStarted);
+        }
+
+        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
         #endregion
     }
 }

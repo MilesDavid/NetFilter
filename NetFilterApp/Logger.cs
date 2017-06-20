@@ -15,7 +15,6 @@ namespace NetFilterApp
 
         public Logger(FileMode mode=FileMode.OpenOrCreate)
         {
-
             try
             {
                 string directoryName = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
@@ -37,6 +36,14 @@ namespace NetFilterApp
         ~Logger()
         {
             logFileStream.Close();
+        }
+
+        public string LogPath
+        {
+            get
+            {
+                return logPath;
+            }
         }
 
         public void write(string message)

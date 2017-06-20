@@ -30,5 +30,8 @@ public:
 	const bool NetfilterStarted() const {
 		return m_NetFilterStarted;
 	}
+	const std::string LogPath() const {
+		return m_logger->logPath();
+	}
 };
 
