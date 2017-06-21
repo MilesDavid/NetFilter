@@ -41,7 +41,7 @@ namespace NetFilterApp
 
         public bool addTracingProcess(string process)
         {
-            if (!System.IO.File.Exists(process))
+            if (!File.Exists(process))
             {
                 // write to log
                 logger.write(string.Format("Process {0} is not exists", process));
@@ -82,18 +82,18 @@ namespace NetFilterApp
             const int bufSize = 512;
             int pos = 0;
             char[] buf = new char[bufSize];
-
-            System.IO.StreamReader configFile = new System.IO.StreamReader(configPath);
-            while (configFile.ReadBlock(buf, pos, bufSize) > 0)
-            {
-                pos += bufSize;
-                Array.Resize(ref buf, pos + bufSize);
-            }
-
-            configFile.Close();
-
+            
             try
             {
+                StreamReader configFile = new StreamReader(
+                    File.Open(configPath, FileMode.OpenOrCreate, FileAccess.Read, FileShare.Read));
+                while (configFile.ReadBlock(buf, pos, bufSize) > 0)
+                {
+                    pos += bufSize;
+                    Array.Resize(ref buf, pos + bufSize);
+                }
+
+                configFile.Close();
                 string configStr = new string(buf);
                 dynamic jsonObj = JsonConvert.DeserializeObject(configStr);
 
@@ -108,7 +108,7 @@ namespace NetFilterApp
             catch (Exception e)
             {
                 // write to log
-                logger.write(e.Message);
+                logger.write(string.Format("{0} {1}", e.GetType(), e.Message));
             }
 
             return config.TracingProcesses.Count > 0;

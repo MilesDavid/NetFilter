@@ -80,26 +80,27 @@ namespace NetFilterApp
             try
             {
                 TreeNode[] foundNodes = root.Nodes.Find(directoryPath, true);
-                //if (foundNodes.Length == 0)
-                //{
+        
                 TreeNode parentNode = null, currentNode = root;
-
-                string textNode = directoryPath;
-                if (directoryIsChild(directoryPath, ref currentNode))
+                if (foundNodes.Length == 0)
                 {
-                    textNode = Path.GetFileName(directoryPath);
+                    string textNode = directoryPath;
+                    if (directoryIsChild(directoryPath, ref currentNode))
+                    {
+                        textNode = Path.GetFileName(directoryPath);
+                    }
+                    else
+                    {
+                        currentNode = (foundNodes.Length > 0) ? foundNodes[0] : root;
+                    }
+
+                    parentNode = currentNode.Nodes.Add(directoryPath, textNode);
+
+                    parentNode.Tag = "Directory";
+                    parentNode.ContextMenuStrip = folderContextMenuStrip;
+
+                    currentNode.Expand();
                 }
-                else
-                {
-                    currentNode = (foundNodes.Length > 0) ? foundNodes[0] : root;
-                }
-
-                parentNode = currentNode.Nodes.Add(directoryPath, textNode);
-
-                parentNode.Tag = "Directory";
-                parentNode.ContextMenuStrip = folderContextMenuStrip;
-
-                currentNode.Expand();
 
                 foreach (var subdir in
                     Directory.GetDirectories(directoryPath, "*", SearchOption.TopDirectoryOnly))
@@ -117,7 +118,6 @@ namespace NetFilterApp
                 {
                     DeleteSelectedTreeItem(parentNode);
                 }
-                //}
             }
             catch (Exception e)
             {
@@ -125,7 +125,7 @@ namespace NetFilterApp
             }
         }
 
-        void AddProcess(string processPath, TreeNode parent=null)
+        void AddProcess(string processPath, TreeNode parent=null, bool addToSettings=true)
         {
             TreeNode[] foundNodes = root.Nodes.Find(processPath, true);
             if (foundNodes.Length == 0)
@@ -133,7 +133,11 @@ namespace NetFilterApp
                 string dirName = Path.GetDirectoryName(processPath);
                 string fileName = Path.GetFileName(processPath);
 
-                settings.addTracingProcess(processPath);
+                if (addToSettings)
+                {
+                    settings.addTracingProcess(processPath);
+                }
+
                 if (foundNodes.Length == 0)
                 {
                     if (parent == null)
@@ -222,7 +226,7 @@ namespace NetFilterApp
         bool RefreshSettings()
         {
             bool settingsWrited = settings.write();
-            if (settingsWrited)
+            if (!settingsWrited)
             {
                 logger.write("Couldn't refresh settings");
             }
@@ -257,20 +261,41 @@ namespace NetFilterApp
             InitializeComponent();
             InitializeFields();
 
-            netMon = NetFilterWrap.NetMonCreate();
-            isInit = (netMon != IntPtr.Zero);
+            try
+            {
+                netMon = NetFilterWrap.NetMonCreate();
+                isInit = (netMon != IntPtr.Zero);
+            }
+            catch (Exception e)
+            {
+                logger.write(string.Format("{0} {1}", e.GetType(), e.Message));
+            }
         }
 
         ~MainForm()
         {
             if (netMonStarted)
             {
-                NetFilterWrap.NetMonStop(netMon);
+                try
+                {
+                    NetFilterWrap.NetMonStop(netMon);
+                }
+                catch (Exception e)
+                {
+                    logger.write(string.Format("{0} {1}", e.GetType(), e.Message));
+                }
             }
 
             if (netMon != null)
             {
-                NetFilterWrap.NetMonFree(netMon);
+                try
+                {
+                    NetFilterWrap.NetMonFree(netMon);
+                }
+                catch (Exception e)
+                {
+                    logger.write(string.Format("{0} {1}", e.GetType(), e.Message));
+                }
             }
 
             netMon = IntPtr.Zero;
@@ -370,7 +395,7 @@ namespace NetFilterApp
 
             foreach (var process in settings.TracingProcesses)
             {
-                AddProcess(process);
+                AddProcess(process, addToSettings:false);
             }
 
             generateSelfsignedCertificateToolStripMenuItem.Checked = settings.CertSelfSigned;
@@ -413,28 +438,11 @@ namespace NetFilterApp
 
         private void addFolderButton_Click(object sender, EventArgs e)
         {
-            //DialogResult dialogResult = folderBrowserDialog.ShowDialog();
-            //if (dialogResult == DialogResult.OK)
-            //{
-            //    AddDirectory(folderBrowserDialog.SelectedPath);
-            //    updateFormItems(NetFilterStatus.Ready);
-            //}
             AddDirectoryHandler();
         }
 
         private void addAppButton_Click(object sender, EventArgs e)
         {
-            //DialogResult dialogResult = openFileDialog.ShowDialog();
-            //{
-            //    if (dialogResult == DialogResult.OK)
-            //    {
-            //        foreach (var process in openFileDialog.FileNames)
-            //        {
-            //            AddProcess(process);
-            //            updateFormItems(NetFilterStatus.Ready);
-            //        }
-            //    }
-            //}
             AddProcessHandler();
         }
 
@@ -540,13 +548,13 @@ namespace NetFilterApp
 
         private void netfilterLogToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            //uint bufSize = 1024;
-            //byte[] buf = new byte[bufSize];
+            uint bufSize = 1024;
+            byte[] buf = new byte[bufSize];
 
-            //NetFilterWrap.NetMonLogPath(netMon, buf, bufSize);
+            NetFilterWrap.NetMonLogPath(netMon, buf, bufSize);
 
-            //logForm.OpenLogPath(System.Text.Encoding.ASCII.GetString(buf));
-            logForm.OpenLogPath(@"C:\Users\borisov.LANAGENT\Desktop\brain_cache.txt");
+            string logPath = System.Text.Encoding.ASCII.GetString(buf).Split('\0')[0];
+            logForm.OpenLogPath(logPath);
         }
 
         private void addCatalogToolStripMenuItem_Click(object sender, EventArgs e)

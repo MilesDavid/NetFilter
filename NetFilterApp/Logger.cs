@@ -10,10 +10,9 @@ namespace NetFilterApp
     class Logger
     {
         string logPath;
-        FileStream logFileStream;
-        UnicodeEncoding uniEncoding;
+        StreamWriter logFileStream;
 
-        public Logger(FileMode mode=FileMode.OpenOrCreate)
+        public Logger(FileMode mode=FileMode.Create)
         {
             try
             {
@@ -22,9 +21,8 @@ namespace NetFilterApp
                 string fileName = loggerType.Namespace;
 
                 logPath = Path.ChangeExtension(Path.Combine(directoryName, fileName), "log");
-                logFileStream = File.Open(logPath, mode, FileAccess.Write, FileShare.Read);
-
-                uniEncoding = new UnicodeEncoding();
+                logFileStream = new StreamWriter(
+                    File.Open(logPath, mode, FileAccess.Write, FileShare.Read), Encoding.UTF8);
             }
             catch (Exception e)
             {
@@ -35,7 +33,6 @@ namespace NetFilterApp
 
         ~Logger()
         {
-            logFileStream.Close();
         }
 
         public string LogPath
@@ -54,17 +51,11 @@ namespace NetFilterApp
 
                 MethodBase method = stackTrace.GetFrame(1).GetMethod();
 
-                string logLine = string.Format("{0} [{1}::{2}] {3}\n",
+                string logLine = string.Format("{0} [{1}::{2}] {3}",
                     DateTime.Now.ToString("yyyy.MM.dd HH:mm:ss.fff"),
                     method.ReflectedType.Name, method.Name, message);
 
-                long pos = logFileStream.Position;
-                int byteCount = uniEncoding.GetByteCount(logLine);
-
-                logFileStream.Lock(pos, byteCount);
-                logFileStream.Write(uniEncoding.GetBytes(logLine), 0, byteCount);
-                logFileStream.Unlock(pos, byteCount);
-
+                logFileStream.WriteLine(logLine);
                 logFileStream.Flush();
             }
             catch (Exception e)

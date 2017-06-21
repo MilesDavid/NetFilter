@@ -24,6 +24,7 @@ bool NetFilterSettings::Init() {
 	m_certPath = std::string(currentDisk) + std::string(currentDir) + "cert";
 	m_configPath = std::string(currentDisk) + std::string(currentDir) + "settings.conf";
 
+	return true;
 }
 
 NetFilterSettings::NetFilterSettings(Logger* logger) :
