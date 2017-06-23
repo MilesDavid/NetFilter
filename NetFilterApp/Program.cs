@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace NetFilterApp
 {
@@ -13,34 +14,53 @@ namespace NetFilterApp
         /// Главная точка входа для приложения.
         /// </summary>
         /// 
-        static bool SameProceessRunned()
+        static bool SameProceessRunned(bool checkHashSum=false)
         {
             var currentProcess = Process.GetCurrentProcess();
 
+            List<string> errors = new List<string>();
             foreach (var process in Process.GetProcesses())
             {
                 try
                 {
-                    if (process.MainModule.FileName == currentProcess.MainModule.FileName &&
-                        process.Id != currentProcess.Id)
+                    if (process.ProcessName == currentProcess.ProcessName && process.Id != currentProcess.Id)
                     {
-                        byte[] processHash, currentProcessHash;
-                        using (var md5 = MD5.Create())
+                        if (checkHashSum)
                         {
-                            using (var streamProcess = File.OpenRead(process.MainModule.FileName))
-                                processHash = md5.ComputeHash(streamProcess);
+                            byte[] processHash, currentProcessHash;
+                            using (var md5 = MD5.Create())
+                            {
+                                using (var streamProcess = File.OpenRead(process.MainModule.FileName))
+                                    processHash = md5.ComputeHash(streamProcess);
 
-                            using (var streamCurrentProcess = File.OpenRead(currentProcess.MainModule.FileName))
-                                currentProcessHash = md5.ComputeHash(streamCurrentProcess);
+                                using (var streamCurrentProcess = File.OpenRead(currentProcess.MainModule.FileName))
+                                    currentProcessHash = md5.ComputeHash(streamCurrentProcess);
+                            }
+
+                            if (processHash.SequenceEqual(currentProcessHash))
+                            {
+                                if (errors.Count > 0)
+                                {
+                                    MessageBox.Show(string.Join("\r\n", errors));
+                                }
+
+                                return true;
+                            }
                         }
-
-                        if (processHash.SequenceEqual(currentProcessHash))
+                        else
                         {
                             return true;
                         }
                     }
                 }
-                catch (Exception e) { } 
+                catch (Exception e) {
+                    errors.Add(string.Format("[{0}] {1} {2} stack: {3}", process.ProcessName, e.GetType(), e.Message, e.StackTrace));
+                }
+            }
+
+            if (errors.Count > 0)
+            {
+                MessageBox.Show(string.Join("\r\n", errors));
             }
 
             return false;

@@ -51,6 +51,7 @@ namespace NetFilterApp
             if (!isExistsTracingProcess(process))
             {
                 config.TracingProcesses.Add(process);
+                config.TracingProcesses.Sort();
                 return true;
             }
             else
@@ -132,9 +133,10 @@ namespace NetFilterApp
             {
                 // write to log
                 logger.write(e.Message);
+                return false;
             }
 
-            return false;
+            return true;
         }
 
         #endregion

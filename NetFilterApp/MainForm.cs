@@ -31,12 +31,11 @@ namespace NetFilterApp
         }
 
         #region TreeView handlers
-        bool directoryIsChild(string expectedChild, ref TreeNode parent)
+        bool findParentNode(string expectedChild, ref TreeNode parent)
         {
-            bool result = false;
             parent = null;
-
             TreeNode[] foundNodes = null;
+
             while (expectedChild != null)
             {
                 foundNodes = root.Nodes.Find(expectedChild, true);
@@ -48,7 +47,7 @@ namespace NetFilterApp
                 expectedChild = Path.GetDirectoryName(expectedChild);
             }
 
-            return result;
+            return false;
         }
 
         void GetFilesNodes(TreeNode node, ref List<TreeNode> filesNodesList)
@@ -85,7 +84,7 @@ namespace NetFilterApp
                 if (foundNodes.Length == 0)
                 {
                     string textNode = directoryPath;
-                    if (directoryIsChild(directoryPath, ref currentNode))
+                    if (findParentNode(directoryPath, ref currentNode))
                     {
                         textNode = Path.GetFileName(directoryPath);
                     }
@@ -125,6 +124,44 @@ namespace NetFilterApp
             }
         }
 
+
+        /*
+         * Create different subdir(nodes) in treeView between parentDir and file
+         * for example parentDir is C:\soft and file C:\Soft\myfolder\misc\file.txt
+         * after calling function in parentDir creates myfolder node and in myfolder node
+         * creates node misc and returns this node
+        */
+        TreeNode CreateDeltaSubDirs(TreeNode parentDir, string file)
+        {
+            TreeNode result = null;
+            string fileDirectory = Path.GetDirectoryName(file);
+
+            if (fileDirectory.Equals(parentDir.Name))
+            {
+                return parentDir;
+            }
+
+            bool startWith = fileDirectory.StartsWith(parentDir.Name);
+            TreeNode parent = null;
+            if (findParentNode(file, ref parent) && startWith)
+            {
+                string diff = fileDirectory.Replace(parentDir.Name, "");
+                string collector = parentDir.Name;
+                foreach (var subDir in diff.Split('\\'))
+                {
+                    if (subDir != string.Empty)
+                    {
+                        collector = Path.Combine(collector, subDir);
+                        parentDir = parentDir.Nodes.Add(collector, subDir);
+                    }
+                }
+
+                result = parentDir;
+            }
+
+            return result;
+        }
+
         void AddProcess(string processPath, TreeNode parent=null, bool addToSettings=true)
         {
             TreeNode[] foundNodes = root.Nodes.Find(processPath, true);
@@ -142,9 +179,23 @@ namespace NetFilterApp
                 {
                     if (parent == null)
                     {
-                        TreeNode foundParentNode= null;
-                        parent = (directoryIsChild(dirName, ref foundParentNode)) ?  
-                            foundParentNode : root.Nodes.Add(dirName, dirName);
+                        TreeNode foundParentNode = null;
+                        if (findParentNode(dirName, ref foundParentNode))
+                        {
+                            TreeNode tmpNode = CreateDeltaSubDirs(foundParentNode, processPath);
+                            if (tmpNode != null)
+                            {
+                                parent = tmpNode;
+                            }
+                            else
+                            {
+                                parent = root.Nodes.Add(dirName, dirName);
+                            }
+                        }
+                        else
+                        {
+                            parent = root.Nodes.Add(dirName, dirName);
+                        }
                         parent.Tag = "Directory";
                         parent.ContextMenuStrip = folderContextMenuStrip;
                     }
@@ -225,15 +276,25 @@ namespace NetFilterApp
 
         bool RefreshSettings()
         {
+            logger.write("Refreshing settings..");
+
             bool settingsWrited = settings.write();
             if (!settingsWrited)
             {
-                logger.write("Couldn't refresh settings");
+                logger.write("Couldn't write settings");
             }
             else
             {
-                NetFilterWrap.NetMonRefreshSetting(netMon);
-                logger.write("Settings has been refreshed..");
+                bool netMonStarted = NetFilterWrap.NetMonIsStarted(netMon);
+                if (NetFilterWrap.NetMonIsStarted(netMon))
+                {
+                    NetFilterWrap.NetMonRefreshSetting(netMon);
+                    logger.write("Settings has been refreshed..");
+                }
+                else
+                {
+                    logger.write("Netfilter is not started..");
+                }
             }
 
             return settingsWrited;

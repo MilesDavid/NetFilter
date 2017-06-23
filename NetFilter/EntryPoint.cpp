@@ -8,21 +8,33 @@
 
 #define NETMON_LIB
 #ifdef NETMON_LIB
-#define NETMON_EXPORT extern __declspec(dllexport)
+#define NETMON_API extern __declspec(dllexport)
 #else
-#define NETMON_EXPORT __declspec(dllimport)
+#define NETMON_API __declspec(dllimport)
 #endif
 
 #ifdef __cplusplus
+#define NETMON_CC __cdecl
 extern "C" {
+#else
+#define NETMON_CC
 #endif // __cplusplus
-	NETMON_EXPORT NetMon* __cdecl NetMonCreate() { return new(std::nothrow) NetMon(); }
-	NETMON_EXPORT void __cdecl NetMonFree(NetMon* netMon) { if (netMon) delete netMon; }
-	NETMON_EXPORT bool __cdecl NetMonStart(NetMon* netMon) { return (netMon) ? netMon->Start() : false; }
-	NETMON_EXPORT bool __cdecl NetMonIsStarted(NetMon* netMon) { return (netMon) ? netMon->NetfilterStarted() : false; }
-	NETMON_EXPORT void __cdecl NetMonStop(NetMon* netMon) { if (netMon) netMon->Stop(); }
-	NETMON_EXPORT void __cdecl NetMonRefreshSettings(NetMon* netMon) { if (netMon) netMon->RefreshSettings(); }
-	NETMON_EXPORT void __cdecl NetMonLogPath(NetMon* netMon, char* buf, size_t size) {
+	NETMON_API NetMon* NETMON_CC NetMonCreate() { return new(std::nothrow) NetMon(); }
+	NETMON_API void NETMON_CC NetMonFree(NetMon* netMon) {
+		if (netMon) {
+			delete netMon;
+			netMon = nullptr;
+		}
+	}
+	NETMON_API int NETMON_CC NetMonStart(NetMon* netMon) {
+		return (netMon && netMon->Start()) ? 1 : 0;
+	}
+	NETMON_API int NETMON_CC NetMonIsStarted(NetMon* netMon) {
+		return (netMon && netMon->NetfilterStarted()) ? 1 : 0;
+	}
+	NETMON_API void NETMON_CC NetMonStop(NetMon* netMon) { if (netMon) netMon->Stop(); }
+	NETMON_API void NETMON_CC NetMonRefreshSettings(NetMon* netMon) { if (netMon) netMon->RefreshSettings(); }
+	NETMON_API void NETMON_CC NetMonLogPath(NetMon* netMon, char* buf, size_t size) {
 		if (netMon) { strcpy_s(buf, size, netMon->LogPath().c_str()); }
 	}
 

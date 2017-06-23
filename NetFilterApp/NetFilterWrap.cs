@@ -17,12 +17,12 @@ namespace NetFilterApp
 
         public static bool NetMonStart(IntPtr pNetMon)
         {
-            return SafeNativeMethods.NetMonStart(pNetMon);
+            return Convert.ToBoolean(SafeNativeMethods.NetMonStart(pNetMon));
         }
 
         public static bool NetMonIsStarted(IntPtr pNetMon)
         {
-            return SafeNativeMethods.NetMonIsStarted(pNetMon);
+            return Convert.ToBoolean(SafeNativeMethods.NetMonIsStarted(pNetMon));
         }
 
         public static void NetMonStop(IntPtr pNetMon)
@@ -50,10 +50,10 @@ namespace NetFilterApp
         public static extern void NetMonFree(IntPtr pNetMon);
 
         [DllImport("NetFilter.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool NetMonStart(IntPtr pNetMon);
+        public static extern int NetMonStart(IntPtr pNetMon);
 
         [DllImport("NetFilter.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool NetMonIsStarted(IntPtr pNetMon);
+        public static extern int NetMonIsStarted(IntPtr pNetMon);
 
         [DllImport("NetFilter.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void NetMonStop(IntPtr pNetMon);

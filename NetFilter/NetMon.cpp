@@ -80,6 +80,7 @@ bool NetMon::Init() {
 			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, m_settings->certPath().c_str());
 		}
 #pragma endregion
+#ifdef ENABLE_DRIVER_COPYING
 
 		if (!copyDriver()) {
 			// write to log
@@ -88,6 +89,7 @@ bool NetMon::Init() {
 		}
 
 		m_logger->write("Driver " + driverName + ".sys has been copied", __FUNCTION__);
+#endif // ENABLE_DRIVER_COPYING
 	}
 
 	return m_settings->isInit() && m_logger->isInit();
@@ -97,7 +99,7 @@ void NetMon::Release() {
 	if (m_Init) {
 
 		Stop();
-
+#ifdef ENABLE_DRIVER_COPYING
 		if (!removeDriver()) {
 			// write to log
 			m_logger->write("Couldn't remove driver " + driverName + ".sys", __FUNCTION__);
@@ -105,6 +107,7 @@ void NetMon::Release() {
 		else {
 			m_logger->write("Driver " + driverName + ".sys has been deleted", __FUNCTION__);
 		}
+#endif
 
 		if (m_settings != nullptr) {
 			delete m_settings;
@@ -163,6 +166,7 @@ void NetMon::AddNetFilterRules() {
 	AddRule(IPPROTO_TCP, 0, 0, 0, 0, AF_INET, "", "", "", "", NF_FILTER);
 }
 
+#ifdef ENABLE_DRIVER_COPYING
 bool NetMon::copyDriver() {
 	std::string disk, dir, file, ext;
 	if (!AuxiliaryFuncs::getCurrentFile(disk, dir, file, ext)) {
@@ -211,6 +215,7 @@ bool NetMon::removeDriver() {
 
 	return false;
 }
+#endif
 
 NetMon::NetMon() :
 	m_logger(nullptr),
