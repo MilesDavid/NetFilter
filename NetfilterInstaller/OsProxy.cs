@@ -1,19 +1,47 @@
-﻿using System.Security.Principal;
+﻿using System;
+using System.Management;
+using System.Security.Principal;
 
 namespace NetfilterInstaller
 {
     static class OsProxy
     {
-
         public static string GetOsVersion()
         {
-            string result = "";
-            return result;
-        }
+            string result = string.Empty;
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher(
+                "SELECT Caption FROM Win32_OperatingSystem");
+            foreach (ManagementObject os in searcher.Get())
+            {
+                result = os["Caption"].ToString();
+                result = result.ToLower();
+                break;
+            }
 
-        public static bool Is64OsBit()
-        {
-            bool result = false;
+            //Bullshit code.. TODO: Refactor
+            if (result.Contains("windows"))
+            {
+                string tmp = "windows";
+                if (result.Contains("7"))
+                {
+                    tmp += 7;
+                }
+                else if (result.Contains("8"))
+                {
+                    tmp += 8;
+                }
+                else if (result.Contains("10"))
+                {
+                    tmp += 8;
+                }
+                else
+                {
+                    return string.Empty;
+                }
+
+                result = tmp;
+            }
+
             return result;
         }
 

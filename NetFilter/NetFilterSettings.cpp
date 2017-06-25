@@ -36,6 +36,7 @@ NetFilterSettings::NetFilterSettings(Logger* logger) :
 	m_Init(false)
 {
 	m_Init = Init();
+	m_logger->write("Settings instance created..", __FUNCTION__);
 }
 
 NetFilterSettings::~NetFilterSettings() {}

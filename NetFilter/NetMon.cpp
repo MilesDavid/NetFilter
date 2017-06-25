@@ -50,7 +50,7 @@ bool NetMon::Init() {
 			m_logger->write("Couldn't read settings", __FUNCTION__);
 			return false;
 		}
-		m_logger->write("Settings readed succcessfully", __FUNCTION__);
+		m_logger->write("Settings readed successfully", __FUNCTION__);
 #pragma region Creating folders
 		//Creating folders
 		std::string dumpInFolder = m_settings->dumpPath() + "\\RAW\\in";
@@ -89,6 +89,39 @@ bool NetMon::Init() {
 		}
 
 		m_logger->write("Driver " + driverName + ".sys has been copied", __FUNCTION__);
+#else
+
+		m_logger->write("Disabling Wow64 redirection", __FUNCTION__);
+
+		PVOID OldValue;
+		if (Wow64DisableWow64FsRedirection(&OldValue))
+		{
+			m_logger->write("Wow64 redirection disabled", __FUNCTION__);
+
+			TCHAR driverDir[MAX_PATH] = { 0 };
+			if (!ExpandEnvironmentStrings("%windir%\\system32\\drivers\\", driverDir, MAX_PATH)) {
+				m_logger->write("Couldn't expand string", __FUNCTION__);
+				return false;
+			}
+
+			std::string driverPath = driverDir + driverName + ".sys";
+			if (!PathFileExists(driverPath.c_str())) {
+				m_logger->write("Couldn't find driver", __FUNCTION__);
+				printf_s("[%s] Couldn't find driver\n", __FUNCTION__);
+				return false;
+			}
+
+			if (FALSE == Wow64RevertWow64FsRedirection(OldValue))
+			{
+				m_logger->write("Couldn't revert Wow64 redirection", __FUNCTION__);
+				return false;
+			}
+			m_logger->write("Wow64 redirection enabled", __FUNCTION__);
+
+		}
+		else {
+			m_logger->write("Couldn't disable Wow64 redirection", __FUNCTION__);
+		}
 #endif // ENABLE_DRIVER_COPYING
 	}
 
@@ -255,18 +288,23 @@ bool NetMon::Start() {
 			printf_s("[%s] Couldn't init protocol filter\n", __FUNCTION__);
 			return false;
 		}
-		m_logger->write("Protocol filter initialized succcessfully", __FUNCTION__);
+		m_logger->write("Protocol filter initialized successfully", __FUNCTION__);
 
 		pf_setRootSSLCertSubject("NetFilter");
 
 		// Initialize the library and start filtering thread
-		if (nf_init(driverName.c_str(), pf_getNFEventHandler()) != NF_STATUS_SUCCESS) {
+		int nf_status = nf_init(driverName.c_str(), pf_getNFEventHandler());
+		if (nf_status != NF_STATUS_SUCCESS) {
 			// write to log
-			m_logger->write("Couldn't init netfilter", __FUNCTION__);
+			const size_t bufSize = 1024;
+			char tmp[bufSize] = { 0 };
+			_snprintf_s(tmp, bufSize, "Couldn't init netfilter. Nf_status: %d", nf_status);
+			m_logger->write(std::string(tmp), __FUNCTION__);
 			printf_s("[%s] Couldn't init netfilter\n", __FUNCTION__);
+
 			return false;
 		}
-		m_logger->write("Netfilter initialized succcessfully", __FUNCTION__);
+		m_logger->write("Netfilter initialized successfully", __FUNCTION__);
 
 		AddNetFilterRules();
 	}

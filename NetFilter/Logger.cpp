@@ -9,7 +9,7 @@ bool Logger::Init() {
 	std::ios_base::openmode mode = (m_rewrite) ? std::ios::app | std::ios::out : std::ios::out;
 	m_logFile.open(m_logName, mode);
 	if (m_logFile.is_open()) {
-		write("Logger started succcessfully", __FUNCTION__);
+		write("Logger started successfully", __FUNCTION__);
 		return true;
 	}
 

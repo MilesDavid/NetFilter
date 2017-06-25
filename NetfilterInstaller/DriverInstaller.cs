@@ -7,6 +7,8 @@ namespace NetfilterInstaller
 {
     static class DriverInstaller
     {
+        const string driverName = "netfilter2.sys";
+
         public enum DriverType
         {
             TDI = 100,
@@ -22,21 +24,27 @@ namespace NetfilterInstaller
             srcDriverPathDict.Add("driverDir", Path.Combine(
                 Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "drivers"));
 
-            string srcDriverPath = "";
+            string srcDriverPath = string.Empty;
 
             if (driverType == DriverType.WFP)
             {
-
                 srcDriverPathDict.Add("driverVersion", "wfp");
-                srcDriverPathDict.Add("osVersion", OsProxy.GetOsVersion());
+                string osVersion = OsProxy.GetOsVersion();
+                if (osVersion == string.Empty)
+                {
+                    errorMsg = "Couldn't get OS version";
+                    return false;
+                }
+
+                srcDriverPathDict.Add("osVersion", osVersion);
             }
             else
             {
                 srcDriverPathDict.Add("driverVersion", "tdi");
             }
 
-            srcDriverPathDict.Add("bitCapasity", (OsProxy.Is64OsBit()) ? "i386" : "amd64");
-            srcDriverPathDict.Add("driverName", "netfilter2.sys");
+            srcDriverPathDict.Add("bitCapasity", (!Environment.Is64BitOperatingSystem) ? "i386" : "amd64");
+            srcDriverPathDict.Add("driverName", driverName);
 
             string[] srcDriverPathArr = new string[srcDriverPathDict.Count];
             srcDriverPathDict.Values.CopyTo(srcDriverPathArr, 0);
@@ -64,7 +72,33 @@ namespace NetfilterInstaller
                 return false;
             }
 
+            //Register driver here..
+
             return true;
+        }
+
+        static public bool DriverAlreadyExits()
+        {
+            string driverPath = Path.Combine(Environment.ExpandEnvironmentVariables(
+                "%windir%\\system32\\drivers"), driverName);
+            return File.Exists(driverPath);
+        }
+
+        static public bool DeleteDriver(ref string errorMsg)
+        {
+            string driverPath = Path.Combine(Environment.ExpandEnvironmentVariables(
+                "%windir%\\system32\\drivers"), driverName);
+            try
+            {
+                File.Delete(driverPath);
+            }
+            catch (Exception e)
+            {
+                errorMsg = string.Format("Error: {0} {1}", e.GetType(), e.Message);
+                return false;
+            }
+
+            return !DriverAlreadyExits();
         }
     }
 }
