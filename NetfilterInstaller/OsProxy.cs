@@ -32,7 +32,7 @@ namespace NetfilterInstaller
                 }
                 else if (result.Contains("10"))
                 {
-                    tmp += 8;
+                    tmp += 10;
                 }
                 else
                 {

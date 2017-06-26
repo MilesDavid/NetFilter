@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Windows.Forms;
 
 namespace NetfilterInstaller
@@ -26,15 +25,23 @@ namespace NetfilterInstaller
                 Close();
             }
 
-            if (DriverInstaller.DriverAlreadyExits())
+            string errMsg = string.Empty;
+            if (DriverInstaller.DriverAlreadyExits(ref errMsg))
             {
                 UpdateForm(FormStatus.Uninstall);
+            }
+
+            if (errMsg != string.Empty)
+            {
+                MessageBox.Show(errMsg,
+                    "Installation failed..", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void ActionButton_Click(object sender, EventArgs e)
         {
-            if (DriverInstaller.DriverAlreadyExits())
+            string errMsg = string.Empty;
+            if (DriverInstaller.DriverAlreadyExits(ref errMsg))
             {
                 string errorMsg = string.Empty;
                 if (DriverInstaller.DeleteDriver(ref errorMsg))
@@ -68,6 +75,13 @@ namespace NetfilterInstaller
                         string.Format("Couldn't install Netfilter..\r\nError: {0}", errorMsg),
                         "error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+            }
+
+            if (errMsg != string.Empty)
+            {
+                MessageBox.Show(
+                    string.Format("Couldn't install Netfilter..\r\nError: {0}", errMsg),
+                    "error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             Close();
