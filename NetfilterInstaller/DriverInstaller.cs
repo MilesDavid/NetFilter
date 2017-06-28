@@ -11,6 +11,8 @@ namespace NetfilterInstaller
     static class DriverInstaller
     {
         const string driverName = "netfilter2.sys";
+        const string localMachineNetfilterRegistrySubfolder = "SOFTWARE\\Netfilter";
+        const string installRegKey = "Installed";
 
         public enum DriverType
         {
@@ -32,20 +34,28 @@ namespace NetfilterInstaller
         static extern bool Wow64RevertWow64FsRedirection(IntPtr ptr);
         #endregion
 
-        static void SetUninstallKeyStarted()
+        #region Work with registry
+        static void SetInstalledKey()
         {
-            RegistryKey netfilterRegKey = Registry.LocalMachine.CreateSubKey("SOFTWARE\\Netfilter\\Uninstall", true);
-            netfilterRegKey.SetValue("UnregDriver", "1", RegistryValueKind.DWord);
+            RegistryKey netfilterRegKey = Registry.LocalMachine.CreateSubKey(
+                localMachineNetfilterRegistrySubfolder, true);
+            netfilterRegKey.SetValue(installRegKey, "1", RegistryValueKind.DWord);
         }
 
-        static bool UninstallStarted()
+        static public bool Installed()
         {
-            RegistryKey netfilterRegKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Netfilter\\Uninstall", true);
+            RegistryKey netfilterRegKey = Registry.LocalMachine.CreateSubKey(
+                localMachineNetfilterRegistrySubfolder, true);
             if (netfilterRegKey != null)
             {
-                var unregDriverValue = netfilterRegKey.GetValue("UnregDriver");
+                var installedValue = netfilterRegKey.GetValue(installRegKey);
 
-                return true;
+                if (installedValue != null && installedValue.ToString() == "1")
+                {
+                    return true;
+                }
+
+                return false;
             }
             else
             {
@@ -53,27 +63,40 @@ namespace NetfilterInstaller
             }
         }
 
+        static void RemoveLocalMachineNetfilterRegistrySubfolder()
+        {
+            Registry.LocalMachine.DeleteSubKey(localMachineNetfilterRegistrySubfolder, true);
+        }
+        #endregion
+
         static void RunRegUtil(RegAction act)
         {
-            Process pProcess = new Process();
-            pProcess.StartInfo.FileName = "nfregdrv.exe";
-
-            if (act == RegAction.Register)
+            try
             {
-                pProcess.StartInfo.Arguments = Path.GetFileNameWithoutExtension(driverName);
+                Process pProcess = new Process();
+                pProcess.StartInfo.FileName = "nfregdrv.exe";
+
+                if (act == RegAction.Register)
+                {
+                    pProcess.StartInfo.Arguments = Path.GetFileNameWithoutExtension(driverName);
+                }
+                else
+                {
+                    pProcess.StartInfo.Arguments = string.Format("-u {0}",
+                        Path.GetFileNameWithoutExtension(driverName));
+                }
+
+                pProcess.StartInfo.UseShellExecute = false;
+                pProcess.StartInfo.CreateNoWindow = true;
+                pProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+
+                pProcess.Start();
+                pProcess.WaitForExit();
             }
-            else
+            catch
             {
-                pProcess.StartInfo.Arguments = string.Format("-u {0}",
-                    Path.GetFileNameWithoutExtension(driverName));
+                MessageBox.Show("Reg util not found!", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-
-            pProcess.StartInfo.UseShellExecute = false;
-            pProcess.StartInfo.CreateNoWindow = true;
-            pProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-
-            pProcess.Start();
-            pProcess.WaitForExit();
         }
 
         static public bool InstallDriver(ref string errorMsg, DriverType driverType)
@@ -118,7 +141,7 @@ namespace NetfilterInstaller
                 IntPtr oldValue = IntPtr.Zero;
                 if (Wow64DisableWow64FsRedirection(ref oldValue))
                 {
-                    File.Copy(srcDriverPath, dstDriverPath);
+                    File.Copy(srcDriverPath, dstDriverPath, true);
                     if (Wow64RevertWow64FsRedirection(oldValue) == false)
                     {
                         errorMsg = "Couldn't revert Wow64 redirection";
@@ -149,6 +172,7 @@ namespace NetfilterInstaller
 
             //Register driver here..
             RunRegUtil(RegAction.Register);
+            SetInstalledKey();
 
             return true;
         }
@@ -188,13 +212,10 @@ namespace NetfilterInstaller
             try
             {
                 // Unregistrate here..
-                if (!UninstallStarted())
+                if (!Installed())
                 {
                     RunRegUtil(RegAction.Unregister);
-                    SetUninstallKeyStarted();
-                }
-                else
-                {
+
                     if (Wow64DisableWow64FsRedirection(ref oldValue))
                     {
                         File.Delete(driverPath);
@@ -210,6 +231,8 @@ namespace NetfilterInstaller
                         errorMsg = "Couldn't disable Wow64 redirection";
                         return false;
                     }
+
+                    return true;
                 }
             }
             catch (Exception e)
@@ -218,7 +241,8 @@ namespace NetfilterInstaller
                 return false;
             }
 
-            return !DriverAlreadyExits(ref errorMsg);
+            RemoveLocalMachineNetfilterRegistrySubfolder();
+            return true;
         }
     }
 }

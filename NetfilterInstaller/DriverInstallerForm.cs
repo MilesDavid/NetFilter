@@ -1,5 +1,12 @@
-﻿using System;
+﻿#if DEBUG
+    #define INSTALL_ONLY_TDI
+    //#define DISABLE_ADMIN_RIGHTS
+#endif
+
+using System;
+using System.Diagnostics;
 using System.Windows.Forms;
+
 
 namespace NetfilterInstaller
 {
@@ -18,37 +25,36 @@ namespace NetfilterInstaller
 
         private void Form1_Load(object sender, EventArgs e)
         {
+#if ! DISABLE_ADMIN_RIGHTS
             if (!OsProxy.CurrentUserIsAdministrator())
             {
                 MessageBox.Show("To continue installing, please run this program as Administrator",
                     "Installation failed..", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Close();
             }
+#endif
+            FormStatus status = (DriverInstaller.Installed()) ?
+                FormStatus.Uninstall : FormStatus.Install;
 
-            string errMsg = string.Empty;
-            if (DriverInstaller.DriverAlreadyExits(ref errMsg))
-            {
-                UpdateForm(FormStatus.Uninstall);
-            }
-
-            if (errMsg != string.Empty)
-            {
-                MessageBox.Show(errMsg,
-                    "Installation failed..", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            UpdateForm(status);
         }
 
         private void ActionButton_Click(object sender, EventArgs e)
         {
-            string errMsg = string.Empty;
-            if (DriverInstaller.DriverAlreadyExits(ref errMsg))
+            if (DriverInstaller.Installed())
             {
                 string errorMsg = string.Empty;
                 if (DriverInstaller.DeleteDriver(ref errorMsg))
                 {
-                    MessageBox.Show(
-                        "Netfilter successfully uninstalled!", string.Empty,
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    DialogResult dialogResult = MessageBox.Show(
+                        "Netfilter successfully uninstalled!\n" +
+                        "For complete uninstallation require reboot.\nReboot now?", "",
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                    if (dialogResult == DialogResult.Yes)
+                    {
+                        Process.Start("shutdown", "/r /t 10");
+                    }
                 }
                 else
                 {
@@ -77,13 +83,6 @@ namespace NetfilterInstaller
                 }
             }
 
-            if (errMsg != string.Empty)
-            {
-                MessageBox.Show(
-                    string.Format("Couldn't install Netfilter..\r\nError: {0}", errMsg),
-                    "error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-
             Close();
         }
 
@@ -92,6 +91,16 @@ namespace NetfilterInstaller
             switch (status)
             {
                 case FormStatus.Install:
+#if INSTALL_ONLY_TDI
+                    driverChooseGroupBox.Visible = false;
+                    tdiDriverRadioButton.Checked = true;
+                    ClientSize = new System.Drawing.Size(
+                         actionButton.Width + 10,
+                         actionButton.Height + 10);
+                    actionButton.Left = (ClientSize.Width - actionButton.Width) / 2;
+                    actionButton.Top = (ClientSize.Height - actionButton.Height) / 2;
+                    actionButton.Text = "Install";
+#endif
                     break;
                 case FormStatus.Uninstall:
                     driverChooseGroupBox.Visible = false;

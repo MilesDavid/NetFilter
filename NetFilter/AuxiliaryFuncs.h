@@ -4,6 +4,7 @@ class AuxiliaryFuncs {
 private:
 	AuxiliaryFuncs();
 	~AuxiliaryFuncs();
+	static bool win2DosPath(const std::string & winPath, std::string & dosPath);
 public:
 	static DWORD getProcessName(DWORD pid, std::string& processName, bool fullName = false);
 	static std::string getTimeStamp(const std::string& format);

@@ -7,7 +7,7 @@ bool Logger::Init() {
 	InitializeCriticalSection(&m_guard);
 
 	std::ios_base::openmode mode = (m_rewrite) ? std::ios::app | std::ios::out : std::ios::out;
-	m_logFile.open(m_logName, mode);
+	m_logFile.open(m_logName, mode | std::fstream::binary);
 	if (m_logFile.is_open()) {
 		write("Logger started successfully", __FUNCTION__);
 		return true;
@@ -47,9 +47,17 @@ Logger::~Logger() {
 void Logger::write(const std::string& buf, const char* caller) {
 	lock();
 
-	TCHAR tmp[1024] = { 0 };
-	_snprintf_s(tmp, 1024, "%s [%s] %s\n", AuxiliaryFuncs::getTimeStamp("%04d.%02d.%02d %02d:%02d:%02d.%03d").c_str(), caller, buf.c_str());
-	std::string line = tmp;
+	std::string timeStamp = AuxiliaryFuncs::getTimeStamp("%04d.%02d.%02d %02d:%02d:%02d.%03d");
+	size_t bufSize = buf.size() + timeStamp.size() + strlen(caller) + 16;
+	char* tmp = new char[bufSize];
+
+	_snprintf_s(tmp, bufSize, bufSize, "%s [%s] %s\n", timeStamp.c_str(), caller, buf.c_str());
+
+	std::string line = "";
+	if (tmp) {
+		line = tmp;
+		delete[] tmp;
+	}
 
 	m_logFile.write(line.c_str(), line.size());
 	m_logFile.flush();

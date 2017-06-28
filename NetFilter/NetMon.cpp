@@ -45,38 +45,84 @@ bool NetMon::Init() {
 			return false;
 		}
 
-		if (!m_settings->readSettings()) {
-			// write to log
-			m_logger->write("Couldn't read settings", __FUNCTION__);
-			return false;
-		}
-		m_logger->write("Settings readed successfully", __FUNCTION__);
+		//if (!m_settings->readSettings()) {
+		//	// write to log
+		//	m_logger->write("Couldn't read settings", __FUNCTION__);
+		//	return false;
+		//}
+		//m_logger->write("Settings readed successfully", __FUNCTION__);
 #pragma region Creating folders
 		//Creating folders
-		std::string dumpInFolder = m_settings->dumpPath() + "\\RAW\\in";
-		if (AuxiliaryFuncs::forceDirectories(dumpInFolder)) {
+		std::string rawInDumpFolder = m_settings->dumpPath() + "\\RAW\\in";
+		if (AuxiliaryFuncs::forceDirectories(rawInDumpFolder)) {
 			// write to log
-			TCHAR msg[MAX_PATH] = { 0 };
-			_snprintf_s(msg, MAX_PATH, "Folder %s has been created", dumpInFolder.c_str());
+			const size_t bufSize = MAX_PATH + rawInDumpFolder.size();
+			char* msg = new char[bufSize];
+			if (msg) {
+				_snprintf_s(msg, bufSize, bufSize, "Folder %s has been created", rawInDumpFolder.c_str());
+				m_logger->write(msg, __FUNCTION__);
 
-			m_logger->write(msg, __FUNCTION__);
-			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, dumpInFolder.c_str());
+				delete[] msg;
+			}
+			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, rawInDumpFolder.c_str());
 		}
-		std::string dumpOutFolder = m_settings->dumpPath() + "\\RAW\\out";
-		if (AuxiliaryFuncs::forceDirectories(dumpOutFolder)) {
+
+
+		std::string rawOutDumpFolder = m_settings->dumpPath() + "\\RAW\\out";
+		if (AuxiliaryFuncs::forceDirectories(rawOutDumpFolder)) {
 			// write to log
-			TCHAR msg[MAX_PATH] = { 0 };
-			_snprintf_s(msg, MAX_PATH, "Folder %s has been created", dumpOutFolder.c_str());
+			const size_t bufSize = MAX_PATH + rawOutDumpFolder.size();
+			char* msg = new char[bufSize];
+			if (msg) {
+				_snprintf_s(msg, bufSize, bufSize, "Folder %s has been created", rawOutDumpFolder.c_str());
+				m_logger->write(msg, __FUNCTION__);
 
-			m_logger->write(msg, __FUNCTION__);
-			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, dumpOutFolder.c_str());
+				delete[] msg;
+			}
+			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, rawOutDumpFolder.c_str());
 		}
+
+		//Creating folders
+		std::string httpRequestDumpFolder = m_settings->dumpPath() + "\\HTTP\\request";
+		if (AuxiliaryFuncs::forceDirectories(httpRequestDumpFolder)) {
+			// write to log
+			const size_t bufSize = MAX_PATH + httpRequestDumpFolder.size();
+			char* msg = new char[bufSize];
+			if (msg) {
+				_snprintf_s(msg, bufSize, bufSize, "Folder %s has been created", httpRequestDumpFolder.c_str());
+				m_logger->write(msg, __FUNCTION__);
+
+				delete[] msg;
+			}
+			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, httpRequestDumpFolder.c_str());
+		}
+
+
+		std::string httpResponseDumpFolder = m_settings->dumpPath() + "\\HTTP\\response";
+		if (AuxiliaryFuncs::forceDirectories(httpResponseDumpFolder)) {
+			// write to log
+			const size_t bufSize = MAX_PATH + httpResponseDumpFolder.size();
+			char* msg = new char[bufSize];
+			if (msg) {
+				_snprintf_s(msg, bufSize, bufSize, "Folder %s has been created", httpResponseDumpFolder.c_str());
+				m_logger->write(msg, __FUNCTION__);
+
+				delete[] msg;
+			}
+			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, httpResponseDumpFolder.c_str());
+		}
+
+
 		if (AuxiliaryFuncs::forceDirectories(m_settings->certPath().c_str())) {
 			// write to log
-			TCHAR msg[MAX_PATH] = { 0 };
-			_snprintf_s(msg, MAX_PATH, "Folder %s has been created", m_settings->certPath().c_str());
+			const size_t bufSize = MAX_PATH + m_settings->certPath().size();
+			char* msg = new char[bufSize];
+			if (msg) {
+				_snprintf_s(msg, bufSize, bufSize, "Folder %s has been created", m_settings->certPath().c_str());
+				m_logger->write(msg, __FUNCTION__);
 
-			m_logger->write(msg, __FUNCTION__);
+				delete[] msg;
+		}
 			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, m_settings->certPath().c_str());
 		}
 #pragma endregion
@@ -218,10 +264,15 @@ bool NetMon::copyDriver() {
 	std::string dstDriverPath = dstDriverFolder + driverName + ".sys";
 
 	if (!CopyFile(srcDriverPath.c_str(), dstDriverPath.c_str(), FALSE)) {
-		TCHAR msg[MAX_PATH] = { 0 };
-		_snprintf_s(msg, MAX_PATH, "Couldn't copy driver %s to %s. Error: %d", srcDriverPath.c_str(), dstDriverFolder, GetLastError());
+			const size_t bufSize = MAX_PATH + srcDriverPath.size() + dstDriverPath.size();
+			char* msg = new char[bufSize];
+			if (msg) {
+				_snprintf_s(msg, bufSize, bufSize, "Couldn't copy driver %s to %s. Error: %d",
+					srcDriverPath.c_str(), dstDriverFolder, GetLastError());
+				m_logger->write(msg, __FUNCTION__);
 
-		m_logger->write(msg, __FUNCTION__);
+				delete[] msg;
+			}
 
 		return false;
 	}
@@ -238,10 +289,15 @@ bool NetMon::removeDriver() {
 	std::string driverPath = driverFolder + driverName + ".sys";
 
 	if (!DeleteFile(driverPath.c_str())) {
-		TCHAR msg[MAX_PATH] = { 0 };
-		_snprintf_s(msg, MAX_PATH, "Couldn't remove driver %s. Error: %d", driverPath.c_str(), GetLastError());
+		const size_t bufSize = MAX_PATH + driverPath.size();
+		char* msg = new char[bufSize];
+		if (msg) {
+			_snprintf_s(msg, bufSize, bufSize, "Couldn't remove driver %s. Error: %d",
+				driverPath.c_str(), GetLastError());
+			m_logger->write(msg, __FUNCTION__);
 
-		m_logger->write(msg, __FUNCTION__);
+			delete[] msg;
+		}
 
 		return false;
 	}
@@ -271,7 +327,17 @@ bool NetMon::Start() {
 			return false;
 		}
 
-		if (m_netfilter == nullptr && m_settings->isInit()) {
+		if (!m_settings->isInit()) {
+			m_logger->write("Couldn't init settings", __FUNCTION__);
+			return false;
+		}
+		
+		if (!m_settings->readSettings()) {
+			m_logger->write("Couldn't read settings", __FUNCTION__);
+			return false;
+		}
+
+		if (m_netfilter == nullptr) {
 			m_netfilter = new NetFilter(m_settings, m_logger);
 		}
 		else {
@@ -344,7 +410,10 @@ void NetMon::RefreshSettings() {
 		return;
 	}
 
+	m_logger->write("Settings updated..", __FUNCTION__);
+	m_logger->write(m_settings->toString(), __FUNCTION__);
+
 	//Refresing filter rules
 	m_netfilter->refreshFilters();
-	m_logger->write("Couldn't refresh filters", __FUNCTION__);
+	m_logger->write("Settings updated..", __FUNCTION__);
 }

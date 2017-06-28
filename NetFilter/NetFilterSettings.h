@@ -35,5 +35,6 @@ public:
 	}
 
 	bool readSettings();
+	std::string toString();
 };
 

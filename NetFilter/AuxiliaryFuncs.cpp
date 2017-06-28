@@ -6,29 +6,60 @@ AuxiliaryFuncs::AuxiliaryFuncs() {}
 
 AuxiliaryFuncs::~AuxiliaryFuncs() {}
 
-DWORD AuxiliaryFuncs::getProcessName(DWORD pid, std::string& processName, bool fullName) {
+bool AuxiliaryFuncs::win2DosPath(const std::string& winPath, std::string& dosPath) {
+	TCHAR tDosDrive[MAX_PATH];
 
-	HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, FALSE, pid);
-	if (hProcess != NULL) {
-		TCHAR processFullName[MAX_PATH];
-		if (GetModuleFileNameEx(hProcess, NULL, processFullName, MAX_PATH)) {
-			if (!fullName) {
-				TCHAR name[MAX_PATH];
-				TCHAR ext[MAX_PATH];
-				_splitpath_s(processFullName, nullptr, 0, nullptr, 0, name, MAX_PATH, ext, MAX_PATH);
-				processName += name;
-				processName += ext;
+	if (GetLogicalDriveStrings(MAX_PATH, tDosDrive)) {
+		LPTSTR lpDosDrive = tDosDrive;
+
+		while (tDosDrive[0] != 0) {
+			std::string sDosDrive = std::string(lpDosDrive).substr(0, 2);
+
+			TCHAR tWinDrive[MAX_PATH];
+			if (QueryDosDevice(sDosDrive.c_str(), tWinDrive, MAX_PATH)) {
+				std::string winDrive = tWinDrive;
+				size_t pos = winPath.find(winDrive);
+				if (pos != winPath.npos) {
+					std::string leftPathPart = winPath.substr(pos, pos + winDrive.size());
+					std::string rightPathPart = winPath.substr(pos + winDrive.size());
+					dosPath = sDosDrive + rightPathPart;
+					return true;
+				}
 			}
 			else {
-				processName = processFullName;
+				return false;
+			}
+
+			lpDosDrive = strchr(lpDosDrive, 0) + 1;
+		}
+	}
+
+	return true;
+}
+
+DWORD AuxiliaryFuncs::getProcessName(DWORD pid, std::string& processName, bool fullName) {
+	HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+	if (hProcess != NULL) {
+		TCHAR processFullWinName[MAX_PATH];
+		if (GetProcessImageFileName(hProcess, processFullWinName, MAX_PATH)) {
+			std::string processFullDosName;
+			if (win2DosPath(std::string(processFullWinName), processFullDosName)) {
+				if (!fullName) {
+					TCHAR name[MAX_PATH];
+					TCHAR ext[MAX_PATH];
+					_splitpath_s(processFullDosName.c_str(), nullptr, 0, nullptr, 0, name, MAX_PATH, ext, MAX_PATH);
+					processName += name;
+					processName += ext;
+				}
+				else {
+					processName = processFullDosName;
+				}
 			}
 		}
 		else {
 			CloseHandle(hProcess);
 			return GetLastError();
 		}
-
-		CloseHandle(hProcess);
 	}
 	else {
 		return GetLastError();

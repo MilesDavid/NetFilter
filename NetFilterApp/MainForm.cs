@@ -59,6 +59,10 @@ namespace NetFilterApp
                 {
                     filesNodesList.Add(childNode);
                 }
+                else if ((string)childNode.Tag == "Directory")
+                {
+                    GetFilesNodes(childNode, ref filesNodesList);
+                }
             }
         }
 
@@ -71,6 +75,21 @@ namespace NetFilterApp
                 {
                     emptyNodesList.Add(childNode);
                 }
+            }
+        }
+
+        private void DeleteEmptyDirectoryNodes()
+        {
+            List<TreeNode> emptyDirectoryNodes = new List<TreeNode>();
+            GetEmptyDirectoryNodes(root, ref emptyDirectoryNodes);
+            while (emptyDirectoryNodes.Count > 0)
+            {
+                foreach (var removeItem in emptyDirectoryNodes)
+                {
+                    removeItem.Remove();
+                }
+                emptyDirectoryNodes.Clear();
+                GetEmptyDirectoryNodes(root, ref emptyDirectoryNodes);
             }
         }
 
@@ -215,7 +234,7 @@ namespace NetFilterApp
         {
             TreeNode parentNode = node.Parent;
 
-            if ((string)node.Tag == "File")
+            if ((string)node.Tag == "Directory")
             {
                 List<TreeNode> fileNodes = new List<TreeNode>();
 
@@ -224,6 +243,10 @@ namespace NetFilterApp
                 {
                     settings.deleteTracingProcess(fileNode.Name);
                 }
+            }
+            else if ((string)node.Tag == "File")
+            {
+                settings.deleteTracingProcess(node.Name);
             }
 
             node.Remove();
@@ -362,6 +385,38 @@ namespace NetFilterApp
             netMon = IntPtr.Zero;
         }
 
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            if (!isInit)
+            {
+                // write to log
+                logger.write("Couldn't create netMon instance");
+                MessageBox.Show("Couldn't create netMon instance", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Close();
+            }
+
+            updateFormItems(NetFilterStatus.NotStarted);
+
+            // Read settings
+            if (!settings.read())
+            {
+                // write to log
+                logger.write("Couldn't read settings");
+                return;
+            }
+
+            foreach (var process in settings.TracingProcesses)
+            {
+                AddProcess(process, addToSettings: false);
+            }
+
+            generateSelfsignedCertificateToolStripMenuItem.Checked = settings.CertSelfSigned;
+
+            updateFormItems(NetFilterStatus.Ready);
+            settingsStatusLabel.Text = "Settings readed..";
+        }
+
         void updateFormItems(NetFilterStatus status)
         {
             if (status == NetFilterStatus.Started)
@@ -406,6 +461,8 @@ namespace NetFilterApp
                     filterStatusLabel.Text = "Filter fails during start..";
                     break;
             }
+
+            DeleteEmptyDirectoryNodes();
         }
 
         private void AddDirectoryHandler()
@@ -431,38 +488,6 @@ namespace NetFilterApp
                     }
                 }
             }
-        }
-
-        private void MainForm_Load(object sender, EventArgs e)
-        {
-            if (!isInit)
-            {
-                // write to log
-                logger.write("Couldn't create netMon instance");
-                MessageBox.Show("Couldn't create netMon instance", "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Close();
-            }
-
-            updateFormItems(NetFilterStatus.NotStarted);
-
-            // Read settings
-            if (!settings.read())
-            {
-                // write to log
-                logger.write("Couldn't read settings");
-                return;
-            }
-
-            foreach (var process in settings.TracingProcesses)
-            {
-                AddProcess(process, addToSettings:false);
-            }
-
-            generateSelfsignedCertificateToolStripMenuItem.Checked = settings.CertSelfSigned;
-
-            updateFormItems(NetFilterStatus.Ready);
-            settingsStatusLabel.Text = "Settings readed..";
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -535,18 +560,6 @@ namespace NetFilterApp
                         updateFormItems(NetFilterStatus.Ready);
                     }
                 }
-            }
-
-            List<TreeNode> emptyDirectoryNodes = new List<TreeNode>();
-            GetEmptyDirectoryNodes(root, ref emptyDirectoryNodes);
-            while (emptyDirectoryNodes.Count > 0)
-            {
-                foreach (var removeItem in emptyDirectoryNodes)
-                {
-                    removeItem.Remove();
-                }
-                emptyDirectoryNodes.Clear();
-                GetEmptyDirectoryNodes(root, ref emptyDirectoryNodes);
             }
         }
 

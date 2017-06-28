@@ -15,8 +15,14 @@ private:
 	inline void addProtocolFilterRules(ENDPOINT_ID id, PNF_TCP_CONN_INFO pConnInfo);
 
 #pragma region Packet handlers
-	inline bool rawInHandler(ENDPOINT_ID id, PFObject * object);
-	inline bool rawOutHandler(ENDPOINT_ID id, PFObject * object);
+	#pragma region RAW
+		inline bool rawInHandler(ENDPOINT_ID id, PFObject * object);
+		inline bool rawOutHandler(ENDPOINT_ID id, PFObject * object);
+	#pragma endregion
+	#pragma region HTTP
+		inline bool httpRequestHandler(ENDPOINT_ID id, PFObject * object);
+		inline bool httpResponseHandler(ENDPOINT_ID id, PFObject * object);
+	#pragma endregion
 #pragma endregion
 
 	bool pFStreamToString(PFStream * stream, std::string& str);

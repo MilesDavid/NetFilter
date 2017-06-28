@@ -9,24 +9,33 @@ inline void NetFilter::addProtocolFilterRules(ENDPOINT_ID id, PNF_TCP_CONN_INFO 
 	if (pConnInfo->direction == NF_D_OUT) {
 		pf_addFilter(id, FT_PROXY, FF_READ_ONLY_OUT);
 		pf_addFilter(id, FT_SSL, sslFlags);
+		pf_addFilter(id, FT_HTTP, FF_READ_ONLY_OUT);
 		pf_addFilter(id, FT_RAW, FF_READ_ONLY_OUT);
 	}
 	else if (pConnInfo->direction == NF_D_IN) {
 		pf_addFilter(id, FT_PROXY, FF_READ_ONLY_IN);
 		pf_addFilter(id, FT_SSL, sslFlags);
+		pf_addFilter(id, FT_HTTP, FF_READ_ONLY_IN);
 		pf_addFilter(id, FT_RAW, FF_READ_ONLY_IN);
 	}
 }
 
 inline bool NetFilter::rawInHandler(ENDPOINT_ID id, PFObject * object) {
+
 	PFStream* rawStream = object->getStream();
-	std::string buf;
+	std::string buf = "";
 
 	pf_postObject(id, object);
 
 	if (rawStream && pFStreamToString(rawStream, buf)) {
 		// Dump packet
-		if (writePacket("RAW", "in", buf)) {
+		std::string connInfo = "";
+		auto tcpConn = m_connections.find(id);
+		if (tcpConn != m_connections.end()) {
+			connInfo += tcpConn->second.toString();
+		}
+
+		if (writePacket("RAW", "in", connInfo + buf)) {
 			return true;
 		}
 		else {
@@ -45,14 +54,101 @@ inline bool NetFilter::rawInHandler(ENDPOINT_ID id, PFObject * object) {
 }
 
 inline bool NetFilter::rawOutHandler(ENDPOINT_ID id, PFObject * object) {
+
 	PFStream* rawStream = object->getStream();
-	std::string buf;
+	std::string buf = "";
 
 	pf_postObject(id, object);
 
 	if (rawStream && pFStreamToString(rawStream, buf)) {
 		// Dump packet
-		if (writePacket("RAW", "out", buf)) {
+		std::string connInfo = "";
+		auto tcpConn = m_connections.find(id);
+		if (tcpConn != m_connections.end()) {
+			connInfo += tcpConn->second.toString();
+		}
+
+		if (writePacket("RAW", "out", connInfo + buf)) {
+			return true;
+		}
+		else {
+			// write to log
+			m_logger->write("Couldn't dump packet", __FUNCTION__);
+			printf_s("[%s] Couldn't dump packet\n", __FUNCTION__);
+		}
+	}
+	else {
+		// write to log
+		m_logger->write("Couldn't read stream", __FUNCTION__);
+		printf_s("[%s] Couldn't read stream\n", __FUNCTION__);
+	}
+
+	return false;
+}
+
+inline bool NetFilter::httpRequestHandler(ENDPOINT_ID id, PFObject * object) {
+	PFStream* httpStatusStream = object->getStream(HS_STATUS);
+	PFStream* httpHeaderStream = object->getStream(HS_HEADER);
+	PFStream* httpContentStream = object->getStream(HS_CONTENT);
+	std::string statusBuf = "", headerBuf = "", contentBuf = "";
+
+	pf_postObject(id, object);
+
+	if (httpStatusStream && pFStreamToString(httpStatusStream, statusBuf) &&
+		httpHeaderStream && pFStreamToString(httpHeaderStream, headerBuf) &&
+		httpContentStream && pFStreamToString(httpContentStream, contentBuf)
+	) {
+
+		std::string buf = "";
+		auto tcpConn = m_connections.find(id);
+		if (tcpConn != m_connections.end()) {
+			buf += tcpConn->second.toString();
+		}
+
+		buf += statusBuf + headerBuf + contentBuf;
+
+		// Dump packet
+		if (writePacket("HTTP", "request", buf)) {
+			return true;
+		}
+		else {
+			// write to log
+			m_logger->write("Couldn't dump packet", __FUNCTION__);
+			printf_s("[%s] Couldn't dump packet\n", __FUNCTION__);
+		}
+	}
+	else {
+		// write to log
+		m_logger->write("Couldn't read stream", __FUNCTION__);
+		printf_s("[%s] Couldn't read stream\n", __FUNCTION__);
+	}
+
+	return false;
+}
+
+inline bool NetFilter::httpResponseHandler(ENDPOINT_ID id, PFObject * object) {
+	PFStream* httpStatusStream = object->getStream(HS_STATUS);
+	PFStream* httpHeaderStream = object->getStream(HS_HEADER);
+	PFStream* httpContentStream = object->getStream(HS_CONTENT);
+	std::string statusBuf = "", headerBuf = "", contentBuf = "";
+
+	pf_postObject(id, object);
+
+	if (httpStatusStream && pFStreamToString(httpStatusStream, statusBuf) &&
+		httpHeaderStream && pFStreamToString(httpHeaderStream, headerBuf) &&
+		httpContentStream && pFStreamToString(httpContentStream, contentBuf)
+		) {
+
+		std::string buf = "";
+		auto tcpConn = m_connections.find(id);
+		if (tcpConn != m_connections.end()) {
+			buf += tcpConn->second.toString();
+		}
+
+		buf += statusBuf + headerBuf + contentBuf;
+
+		// Dump packet
+		if (writePacket("HTTP", "response", buf)) {
 			return true;
 		}
 		else {
@@ -105,7 +201,7 @@ bool NetFilter::writePacket(std::string packetType, std::string direction, std::
 	std::string dumpDir = m_settings->dumpPath() + "\\" + sPacketType + "\\" + direction + "\\";
 	std::string dumpPath = dumpDir + AuxiliaryFuncs::getTimeStamp("%04d-%02d-%02d-%02d-%02d-%02d-%03d") + ".txt";
 
-	dumpFile.open(dumpPath, std::ios::out);
+	dumpFile.open(dumpPath, std::ios::out | std::fstream::binary);
 	if (dumpFile.is_open()) {
 		dumpFile << buf;
 		dumpFile.close();
@@ -162,7 +258,8 @@ void NetFilter::threadEnd() {}
 void NetFilter::tcpConnected(ENDPOINT_ID id, PNF_TCP_CONN_INFO pConnInfo) {
 	std::string sProcessName;
 	DWORD pid = pConnInfo->processId;
-	if (AuxiliaryFuncs::getProcessName(pid, sProcessName, true) == ERROR_SUCCESS) {
+	DWORD error = AuxiliaryFuncs::getProcessName(pid, sProcessName, true);
+	if (error == ERROR_SUCCESS) {
 		AuxiliaryFuncs::toLower(sProcessName);
 
 		if (
@@ -173,13 +270,18 @@ void NetFilter::tcpConnected(ENDPOINT_ID id, PNF_TCP_CONN_INFO pConnInfo) {
 #endif
 			) {
 			addProtocolFilterRules(id, pConnInfo);
-			m_connections.insert(std::make_pair(id, TcpConnectionInfo(pConnInfo)));
+			m_connections.insert(std::make_pair(id, TcpConnectionInfo(pConnInfo, sProcessName)));
+
+			TCHAR msg[MAX_PATH] = { 0 };
+			_snprintf_s(msg, MAX_PATH, "Process [%d] %s traced.", pid, sProcessName.c_str());
+
+			m_logger->write(msg, __FUNCTION__);
 		}
 	}
 	else {
 		// write to log
 		TCHAR msg[MAX_PATH] = { 0 };
-		_snprintf_s(msg, MAX_PATH, "Couldn't get procname by pid: %d", pid);
+		_snprintf_s(msg, MAX_PATH, "Couldn't get procname by pid: %d. Last error: %d", pid, error);
 
 		m_logger->write(msg, __FUNCTION__);
 		printf_s("[%s] Couldn't get procname by pid: %d\n", __FUNCTION__, pid);
@@ -227,6 +329,12 @@ NF_STATUS NetFilter::udpSetConnectionState(ENDPOINT_ID id, int suspended) {
 
 void NetFilter::dataAvailable(ENDPOINT_ID id, PFObject * object) {
 	switch (object->getType()) {
+		case OT_HTTP_REQUEST:
+			httpRequestHandler(id, object);
+			break;
+		case OT_HTTP_RESPONSE:
+			httpResponseHandler(id, object);
+			break;
 		case OT_RAW_INCOMING:
 			rawInHandler(id, object);
 			break;

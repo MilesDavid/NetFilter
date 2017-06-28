@@ -43,6 +43,7 @@ NetFilterSettings::~NetFilterSettings() {}
 
 bool NetFilterSettings::readSettings() {
 	if (PathFileExists(m_configPath.c_str()) == FALSE) {
+		m_logger->write("Log file " + m_configPath + " not found", __FUNCTION__);
 		return false;
 	}
 
@@ -75,10 +76,14 @@ bool NetFilterSettings::readSettings() {
 		}
 		catch (const std::exception& e) {
 			// write to log
-			TCHAR msg[MAX_PATH] = { 0 };
-			_snprintf_s(msg, MAX_PATH, "Couldn't parse json. Error: %s", e.what());
+			const size_t bufSize = MAX_PATH + strlen(e.what());
+			char* msg = new char[bufSize];
+			if (msg) {
+				_snprintf_s(msg, bufSize, bufSize, "Couldn't parse json. Error: %s", e.what());
+				m_logger->write(msg, __FUNCTION__);
 
-			m_logger->write(msg, __FUNCTION__);
+				delete[] msg;
+			}
 
 			printf_s("Couldn't parse json. Error: %s\n", e.what());
 			return false;
@@ -89,5 +94,22 @@ bool NetFilterSettings::readSettings() {
 
 	}
 
+	m_logger->write("Processes traced" +
+		std::to_string(m_trackingProcesses.size()), __FUNCTION__);
+
 	return m_trackingProcesses.size() != 0;
+}
+
+std::string NetFilterSettings::toString() {
+	std::string res;
+	res += "Self-signed: " + std::to_string(m_selfSigned) + ", ";
+	res += "Dump folder: " + m_dumpPath + ", ";
+	res += "Cert folder: " + m_certPath + ", ";
+	res += "Traced processes: ";
+
+	for each(const auto& process in m_trackingProcesses) {
+		res += process + ", ";
+	}
+
+	return res;
 }
