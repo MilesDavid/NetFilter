@@ -1,6 +1,6 @@
 ﻿#if DEBUG
-    #define INSTALL_ONLY_TDI
-    //#define DISABLE_ADMIN_RIGHTS
+//#define INSTALL_ONLY_TDI
+//#define DISABLE_ADMIN_RIGHTS
 #endif
 
 using System;
@@ -31,6 +31,8 @@ namespace NetfilterInstaller
                 MessageBox.Show("To continue installing, please run this program as Administrator",
                     "Installation failed..", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Close();
+
+                return;
             }
 #endif
             FormStatus status = (DriverInstaller.Installed()) ?

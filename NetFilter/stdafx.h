@@ -17,6 +17,7 @@
 //#define FILTER_ANY_PROCESS
 //#define ENABLE_CONSOLE
 //#define ENABLE_DRIVER_COPYING
+#define UNPACK_GZIP_CONTENT
 
 #pragma region Windows sockets
 	#define _WINSOCKAPI_

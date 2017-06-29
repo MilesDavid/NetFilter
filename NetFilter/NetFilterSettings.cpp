@@ -8,10 +8,8 @@ bool NetFilterSettings::Init() {
 
 	if (!GetModuleFileName(hModule, currentPath, MAX_PATH)) {
 		// write to log
-		TCHAR msg[MAX_PATH] = { 0 };
-		_snprintf_s(msg, MAX_PATH, "Error during calling GetModuleFileName, error: %d", GetLastError());
-
-		m_logger->write(msg, __FUNCTION__);
+		m_logger->write("Error during calling GetModuleFileName, error: "
+			+ std::to_string(GetLastError()), __FUNCTION__);
 
 		return false;
 	}
@@ -57,6 +55,9 @@ bool NetFilterSettings::readSettings() {
 		}
 
 		configFile.close();
+
+		m_trackingProcesses.clear();
+
 #ifdef ENABLE_NLOHMANN_JSON
 		json jsonObj;
 		try {
@@ -76,14 +77,8 @@ bool NetFilterSettings::readSettings() {
 		}
 		catch (const std::exception& e) {
 			// write to log
-			const size_t bufSize = MAX_PATH + strlen(e.what());
-			char* msg = new char[bufSize];
-			if (msg) {
-				_snprintf_s(msg, bufSize, bufSize, "Couldn't parse json. Error: %s", e.what());
-				m_logger->write(msg, __FUNCTION__);
-
-				delete[] msg;
-			}
+			std::string msg = "Couldn't parse json. Error: " + std::string(e.what());
+			m_logger->write(msg, __FUNCTION__);
 
 			printf_s("Couldn't parse json. Error: %s\n", e.what());
 			return false;
@@ -94,8 +89,8 @@ bool NetFilterSettings::readSettings() {
 
 	}
 
-	m_logger->write("Processes traced" +
-		std::to_string(m_trackingProcesses.size()), __FUNCTION__);
+	m_logger->write("Processes traced: " + std::to_string(m_trackingProcesses.size())
+		+ ", self-signed: " + std::to_string(m_selfSigned), __FUNCTION__);
 
 	return m_trackingProcesses.size() != 0;
 }

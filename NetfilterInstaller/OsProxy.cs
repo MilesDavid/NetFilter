@@ -26,13 +26,9 @@ namespace NetfilterInstaller
                 {
                     tmp += 7;
                 }
-                else if (result.Contains("8"))
+                else if (result.Contains("8") || result.Contains("10"))
                 {
                     tmp += 8;
-                }
-                else if (result.Contains("10"))
-                {
-                    tmp += 10;
                 }
                 else
                 {

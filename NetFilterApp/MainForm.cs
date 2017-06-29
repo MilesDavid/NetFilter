@@ -25,8 +25,10 @@ namespace NetFilterApp
         {
             NotStarted,
             Ready,
+            DisableRefreshing,
             Started,
             Stopped,
+            Refreshed,
             Failed
         }
 
@@ -98,7 +100,7 @@ namespace NetFilterApp
             try
             {
                 TreeNode[] foundNodes = root.Nodes.Find(directoryPath, true);
-        
+
                 TreeNode parentNode = null, currentNode = root;
                 if (foundNodes.Length == 0)
                 {
@@ -181,7 +183,7 @@ namespace NetFilterApp
             return result;
         }
 
-        void AddProcess(string processPath, TreeNode parent=null, bool addToSettings=true)
+        void AddProcess(string processPath, TreeNode parent = null, bool addToSettings = true)
         {
             TreeNode[] foundNodes = root.Nodes.Find(processPath, true);
             if (foundNodes.Length == 0)
@@ -258,11 +260,6 @@ namespace NetFilterApp
             {
                 parentNode.Remove();
             }
-
-            if (root.Nodes.Count == 0)
-            {
-                updateFormItems(NetFilterStatus.NotStarted);
-            }
         }
 
         #endregion
@@ -338,7 +335,64 @@ namespace NetFilterApp
             logForm = new LogForm();
         }
 
-        #region MainForm handlers
+        #region MainForm event handlers
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            if (!isInit)
+            {
+                // write to log
+                logger.write("Couldn't create netMon instance");
+                MessageBox.Show("Couldn't create netMon instance", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Close();
+
+                return;
+            }
+
+            RedrawForm();
+            updateFormItems(NetFilterStatus.NotStarted);
+
+            // Read settings
+            if (!settings.read())
+            {
+                // write to log
+                logger.write("Couldn't read settings");
+                return;
+            }
+
+            foreach (var process in settings.TracingProcesses)
+            {
+                AddProcess(process, addToSettings: false);
+            }
+
+            generateSelfsignedCertificateToolStripMenuItem.Checked = settings.CertSelfSigned;
+
+            updateFormItems(NetFilterStatus.Ready);
+            settingsStatusLabel.Text = "Settings readed..";
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (isInit)
+            {
+                DialogResult dialogResult = MessageBox.Show("Do you wanna exit?", "Quit",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (dialogResult == DialogResult.No)
+                {
+                    e.Cancel = true;
+                }
+            }
+        }
+
+        private void MainForm_Resize(object sender, EventArgs e)
+        {
+            RedrawForm();
+        }
+
+        #endregion
+
+        #region MainForm Constructor & Destructor
 
         public MainForm()
         {
@@ -385,79 +439,122 @@ namespace NetFilterApp
             netMon = IntPtr.Zero;
         }
 
-        private void MainForm_Load(object sender, EventArgs e)
+        #endregion
+
+        void RedrawForm()
         {
-            if (!isInit)
-            {
-                // write to log
-                logger.write("Couldn't create netMon instance");
-                MessageBox.Show("Couldn't create netMon instance", "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Close();
-            }
+            int padding = 10;
 
-            updateFormItems(NetFilterStatus.NotStarted);
+            filteredAppsTreeViewContainerGroupBox.Width = ClientSize.Width - 2 * padding;
+            filteredAppsTreeViewContainerGroupBox.Height = (int)(ClientSize.Height * 0.75) - padding / 2 - mainStatusStrip.Height / 2;
+            filteredAppsTreeViewContainerGroupBox.Top = mainMenuStrip.Bottom;
 
-            // Read settings
-            if (!settings.read())
-            {
-                // write to log
-                logger.write("Couldn't read settings");
-                return;
-            }
+            actionButtonsContainerPanel.Width = ClientSize.Width - padding;
+            actionButtonsContainerPanel.Height = (int)(ClientSize.Height * 0.25) - (int)(padding * 2.5) - mainStatusStrip.Height / 2;
+            actionButtonsContainerPanel.Top = filteredAppsTreeViewContainerGroupBox.Bottom + padding / 2;
 
-            foreach (var process in settings.TracingProcesses)
-            {
-                AddProcess(process, addToSettings: false);
-            }
+            int buttonWidth = actionButtonsContainerPanel.ClientSize.Width / 5 - padding / 2;
+            int buttonHeight = actionButtonsContainerPanel.ClientSize.Height - padding;
 
-            generateSelfsignedCertificateToolStripMenuItem.Checked = settings.CertSelfSigned;
+            startFilterButton.Width = buttonWidth;
+            startFilterButton.Height = buttonHeight;
+            startFilterButton.Left = 0;
 
-            updateFormItems(NetFilterStatus.Ready);
-            settingsStatusLabel.Text = "Settings readed..";
+            stopFilterButton.Width = buttonWidth;
+            stopFilterButton.Height = buttonHeight;
+            stopFilterButton.Left = startFilterButton.Right + padding / 2;
+
+            addFolderButton.Width = buttonWidth;
+            addFolderButton.Height = buttonHeight;
+            addFolderButton.Left = stopFilterButton.Right + padding / 2;
+
+            addAppButton.Width = buttonWidth;
+            addAppButton.Height = buttonHeight;
+            addAppButton.Left = addFolderButton.Right + padding / 2;
+
+            refreshSettingsButton.Width = buttonWidth;
+            refreshSettingsButton.Height = buttonHeight;
+            refreshSettingsButton.Left = addAppButton.Right + padding / 2;
         }
 
         void updateFormItems(NetFilterStatus status)
         {
-            if (status == NetFilterStatus.Started)
-            {
-                stopFilterButton.Enabled = true;
-                refreshSettingsButton.Enabled = true;
-
-                addFolderButton.Enabled = false;
-                addAppButton.Enabled = false;
-                startFilterButton.Enabled = false;
-            }
-            else
-            {
-                startFilterButton.Enabled = true;
-                addFolderButton.Enabled = true;
-                addAppButton.Enabled = true;
-
-                stopFilterButton.Enabled = false;
-                refreshSettingsButton.Enabled = false;
-            }
-
             switch (status)
             {
                 case NetFilterStatus.NotStarted:
-                    filterStatusLabel.Text = "Filter not ready";
                     startFilterButton.Enabled = false;
+                    startToolStripMenuItem.Enabled = false;
+
+                    stopFilterButton.Enabled = false;
+                    stopToolStripMenuItem.Enabled = false;
+
+                    refreshSettingsButton.Enabled = false;
+                    refreshSettingsToolStripMenuItem.Enabled = false;
+
+                    filterStatusLabel.Text = "Filter not ready";
                     break;
 
                 case NetFilterStatus.Ready:
+                    startFilterButton.Enabled = true;
+                    startToolStripMenuItem.Enabled = true;
+
+                    stopFilterButton.Enabled = false;
+                    stopToolStripMenuItem.Enabled = false;
+
+                    refreshSettingsButton.Enabled = false;
+                    refreshSettingsToolStripMenuItem.Enabled = false;
+
                     filterStatusLabel.Text = "Filter ready to start";
                     break;
 
+                case NetFilterStatus.DisableRefreshing:
+                    refreshSettingsButton.Enabled = false;
+                    refreshSettingsToolStripMenuItem.Enabled = false;
+                    break;
+
                 case NetFilterStatus.Started:
+                    startFilterButton.Enabled = false;
+                    startToolStripMenuItem.Enabled = false;
+
+                    stopFilterButton.Enabled = true;
+                    stopToolStripMenuItem.Enabled = true;
+
+                    refreshSettingsButton.Enabled = true;
+                    refreshSettingsToolStripMenuItem.Enabled = true;
+
                     filterStatusLabel.Text = "Filter started..";
                     break;
 
                 case NetFilterStatus.Stopped:
+                    startFilterButton.Enabled = true;
+                    startToolStripMenuItem.Enabled = true;
+
+                    stopFilterButton.Enabled = false;
+                    stopToolStripMenuItem.Enabled = false;
+
+                    refreshSettingsButton.Enabled = false;
+                    refreshSettingsToolStripMenuItem.Enabled = false;
+
                     filterStatusLabel.Text = "Filter stopped..";
                     break;
 
+                case NetFilterStatus.Refreshed:
+                    refreshSettingsButton.Enabled = true;
+                    refreshSettingsToolStripMenuItem.Enabled = true;
+
+                    settingsStatusLabel.Text = "Settings refreshed";
+                    break;
+
                 case NetFilterStatus.Failed:
+                    startFilterButton.Enabled = true;
+                    startToolStripMenuItem.Enabled = true;
+
+                    stopFilterButton.Enabled = false;
+                    stopToolStripMenuItem.Enabled = false;
+
+                    refreshSettingsButton.Enabled = false;
+                    refreshSettingsToolStripMenuItem.Enabled = false;
+
                     filterStatusLabel.Text = "Filter fails during start..";
                     break;
             }
@@ -470,8 +567,11 @@ namespace NetFilterApp
             DialogResult dialogResult = folderBrowserDialog.ShowDialog();
             if (dialogResult == DialogResult.OK)
             {
+                NetFilterStatus status = (NetFilterWrap.NetMonIsStarted(netMon))
+                    ? NetFilterStatus.Refreshed : NetFilterStatus.Ready;
+
                 AddDirectory(folderBrowserDialog.SelectedPath);
-                updateFormItems(NetFilterStatus.Ready);
+                updateFormItems(status);
             }
         }
 
@@ -481,33 +581,15 @@ namespace NetFilterApp
             {
                 if (dialogResult == DialogResult.OK)
                 {
+                    NetFilterStatus status = (NetFilterWrap.NetMonIsStarted(netMon))
+                        ? NetFilterStatus.Refreshed : NetFilterStatus.Ready;
                     foreach (var process in openFileDialog.FileNames)
                     {
                         AddProcess(process);
-                        updateFormItems(NetFilterStatus.Ready);
+                        updateFormItems(status);
                     }
                 }
             }
-        }
-
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            if (isInit)
-            {
-                DialogResult dialogResult = MessageBox.Show("Do you wanna exit?", "Quit",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (dialogResult == DialogResult.No)
-                {
-                    e.Cancel = true;
-                }
-            }
-        }
-        #endregion
-
-        void ShowLog()
-        {
-            logForm.OpenLogPath("");
-            logForm.Visible = true;
         }
 
         #region Button handlers
@@ -547,17 +629,20 @@ namespace NetFilterApp
             foreach (string item in draggedItems)
             {
                 FileAttributes attr = File.GetAttributes(item);
+                NetFilterStatus status = (NetFilterWrap.NetMonIsStarted(netMon))
+                    ? NetFilterStatus.Refreshed : NetFilterStatus.Ready;
+
                 if ((attr & FileAttributes.Directory) == FileAttributes.Directory)
                 {
                     AddDirectory(item);
-                    updateFormItems(NetFilterStatus.Ready);
+                    updateFormItems(status);
                 }
                 else if (Path.GetExtension(item) == ".exe")
                 {
                     if (!settings.isExistsTracingProcess(item))
                     {
                         AddProcess(item);
-                        updateFormItems(NetFilterStatus.Ready);
+                        updateFormItems(status);
                     }
                 }
             }
@@ -572,18 +657,6 @@ namespace NetFilterApp
 
         }
 
-        #endregion
-
-        private void toolStripMenuItemDeleteFolder_Click(object sender, EventArgs e)
-        {
-            DeleteSelectedTreeItem(filteredAppsTreeView.SelectedNode);
-        }
-
-        private void toolStripMenuItemDeleteFile_Click(object sender, EventArgs e)
-        {
-            DeleteSelectedTreeItem(filteredAppsTreeView.SelectedNode);
-        }
-
         private void filteredAppsTreeView_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
@@ -592,7 +665,36 @@ namespace NetFilterApp
             }
         }
 
+        #endregion
+
+        #region ToolSripMenu handlers
+
+        private void toolStripMenuItemDeleteFolder_Click(object sender, EventArgs e)
+        {
+            DeleteSelectedTreeItem(filteredAppsTreeView.SelectedNode);
+            if (settings.TracingProcesses.Count == 0)
+            {
+                NetFilterStatus status = (NetFilterWrap.NetMonIsStarted(netMon))
+                    ? NetFilterStatus.DisableRefreshing : NetFilterStatus.NotStarted;
+                updateFormItems(status);
+            }
+        }
+
+        private void toolStripMenuItemDeleteFile_Click(object sender, EventArgs e)
+        {
+            DeleteSelectedTreeItem(filteredAppsTreeView.SelectedNode);
+            if (settings.TracingProcesses.Count == 0)
+            {
+                NetFilterStatus status = (NetFilterWrap.NetMonIsStarted(netMon))
+                    ? NetFilterStatus.DisableRefreshing : NetFilterStatus.NotStarted;
+                updateFormItems(status);
+            }
+        }
+
+        #endregion
+
         #region Main menu handlers
+
         private void startToolStripMenuItem_Click(object sender, EventArgs e)
         {
             StartNetFilter();
@@ -610,9 +712,10 @@ namespace NetFilterApp
 
         private void generateSelfsignedCertificateToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            generateSelfsignedCertificateToolStripMenuItem.Checked = 
+                !generateSelfsignedCertificateToolStripMenuItem.Checked;
             bool certSelfSigned = generateSelfsignedCertificateToolStripMenuItem.Checked;
             settings.CertSelfSigned = certSelfSigned;
-            generateSelfsignedCertificateToolStripMenuItem.Checked = !certSelfSigned;
         }
 
         private void applicationLogToolStripMenuItem_Click(object sender, EventArgs e)
@@ -653,7 +756,7 @@ namespace NetFilterApp
             {
                 removeNode.Remove();
             }
-                  
+
             settings.clearTracingProcessList();
             updateFormItems(NetFilterStatus.NotStarted);
         }
@@ -662,6 +765,7 @@ namespace NetFilterApp
         {
             Close();
         }
+
         #endregion
     }
 }

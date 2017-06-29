@@ -27,7 +27,7 @@ inline bool NetFilter::rawInHandler(ENDPOINT_ID id, PFObject * object) {
 
 	pf_postObject(id, object);
 
-	if (rawStream && pFStreamToString(rawStream, buf)) {
+	if (pFStreamToString(rawStream, buf)) {
 		// Dump packet
 		std::string connInfo = "";
 		auto tcpConn = m_connections.find(id);
@@ -60,7 +60,7 @@ inline bool NetFilter::rawOutHandler(ENDPOINT_ID id, PFObject * object) {
 
 	pf_postObject(id, object);
 
-	if (rawStream && pFStreamToString(rawStream, buf)) {
+	if (pFStreamToString(rawStream, buf)) {
 		// Dump packet
 		std::string connInfo = "";
 		auto tcpConn = m_connections.find(id);
@@ -94,10 +94,19 @@ inline bool NetFilter::httpRequestHandler(ENDPOINT_ID id, PFObject * object) {
 
 	pf_postObject(id, object);
 
-	if (httpStatusStream && pFStreamToString(httpStatusStream, statusBuf) &&
-		httpHeaderStream && pFStreamToString(httpHeaderStream, headerBuf) &&
-		httpContentStream && pFStreamToString(httpContentStream, contentBuf)
-	) {
+#ifdef UNPACK_GZIP_CONTENT
+	PFHeader httpHeader;
+	if (pf_readHeader(httpHeaderStream, &httpHeader)
+		&& httpHeader.toString().find("Content-Encoding: gzip") != std::string::npos) {
+		if (!pf_unzipStream(httpContentStream)) {
+			m_logger->write("Couldn't UNZIP content", __FUNCTION__);
+		}
+	}
+#endif
+
+	if (pFStreamToString(httpStatusStream, statusBuf) &&
+		pFStreamToString(httpHeaderStream, headerBuf) &&
+		pFStreamToString(httpContentStream, contentBuf)) {
 
 		std::string buf = "";
 		auto tcpConn = m_connections.find(id);
@@ -134,10 +143,19 @@ inline bool NetFilter::httpResponseHandler(ENDPOINT_ID id, PFObject * object) {
 
 	pf_postObject(id, object);
 
-	if (httpStatusStream && pFStreamToString(httpStatusStream, statusBuf) &&
-		httpHeaderStream && pFStreamToString(httpHeaderStream, headerBuf) &&
-		httpContentStream && pFStreamToString(httpContentStream, contentBuf)
-		) {
+#ifdef UNPACK_GZIP_CONTENT
+	PFHeader httpHeader;
+	if (pf_readHeader(httpHeaderStream, &httpHeader)
+		&& httpHeader.toString().find("Content-Encoding: gzip") != std::string::npos) {
+		if (!pf_unzipStream(httpContentStream)) {
+			m_logger->write("Couldn't UNZIP content", __FUNCTION__);
+		}
+	}
+#endif
+
+	if (pFStreamToString(httpStatusStream, statusBuf) &&
+		pFStreamToString(httpHeaderStream, headerBuf) &&
+		pFStreamToString(httpContentStream, contentBuf)) {
 
 		std::string buf = "";
 		auto tcpConn = m_connections.find(id);
@@ -184,10 +202,7 @@ bool NetFilter::pFStreamToString(PFStream * stream, std::string & str) {
 		}
 		else {
 			// write to log
-			TCHAR msg[MAX_PATH] = { 0 };
-			_snprintf_s(msg, MAX_PATH, "Couldn't allocate memory. Errno: %d", errno);
-
-			m_logger->write(msg, __FUNCTION__);
+			m_logger->write("Couldn't allocate memory. Errno: " + std::to_string(errno), __FUNCTION__);
 			printf_s("[%s] Couldn't allocate memory. Errno: %d\n", __FUNCTION__, errno);
 		}
 	}
@@ -210,10 +225,7 @@ bool NetFilter::writePacket(std::string packetType, std::string direction, std::
 	}
 	else {
 		// write to log
-		TCHAR msg[MAX_PATH] = { 0 };
-		_snprintf_s(msg, MAX_PATH, "Couldn't open file. Errno: %d", errno);
-
-		m_logger->write(msg, __FUNCTION__);
+		m_logger->write("Couldn't open file. Errno: " + std::to_string(errno), __FUNCTION__);
 		printf_s("[%s] Couldn't open file. Errno: %d\n", __FUNCTION__, errno);
 	}
 
@@ -253,7 +265,10 @@ void NetFilter::threadStart() {
 	printf_s("[%s]\n", __FUNCTION__);
 }
 
-void NetFilter::threadEnd() {}
+void NetFilter::threadEnd() {
+	m_logger->write("Netfilter thread ended", __FUNCTION__);
+	printf_s("[%s]\n", __FUNCTION__);
+}
 
 void NetFilter::tcpConnected(ENDPOINT_ID id, PNF_TCP_CONN_INFO pConnInfo) {
 	std::string sProcessName;
@@ -271,11 +286,6 @@ void NetFilter::tcpConnected(ENDPOINT_ID id, PNF_TCP_CONN_INFO pConnInfo) {
 			) {
 			addProtocolFilterRules(id, pConnInfo);
 			m_connections.insert(std::make_pair(id, TcpConnectionInfo(pConnInfo, sProcessName)));
-
-			TCHAR msg[MAX_PATH] = { 0 };
-			_snprintf_s(msg, MAX_PATH, "Process [%d] %s traced.", pid, sProcessName.c_str());
-
-			m_logger->write(msg, __FUNCTION__);
 		}
 	}
 	else {

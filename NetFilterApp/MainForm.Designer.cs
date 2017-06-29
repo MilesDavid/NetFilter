@@ -64,18 +64,24 @@
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.filteredAppsTreeViewContainerGroupBox = new System.Windows.Forms.GroupBox();
+            this.actionButtonsContainerPanel = new System.Windows.Forms.Panel();
             this.mainStatusStrip.SuspendLayout();
             this.folderContextMenuStrip.SuspendLayout();
             this.fileContextMenuStrip.SuspendLayout();
             this.mainMenuStrip.SuspendLayout();
+            this.filteredAppsTreeViewContainerGroupBox.SuspendLayout();
+            this.actionButtonsContainerPanel.SuspendLayout();
             this.SuspendLayout();
             // 
             // filteredAppsTreeView
             // 
             this.filteredAppsTreeView.AllowDrop = true;
-            this.filteredAppsTreeView.Location = new System.Drawing.Point(12, 26);
+            this.filteredAppsTreeView.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.filteredAppsTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.filteredAppsTreeView.Location = new System.Drawing.Point(3, 16);
             this.filteredAppsTreeView.Name = "filteredAppsTreeView";
-            this.filteredAppsTreeView.Size = new System.Drawing.Size(399, 194);
+            this.filteredAppsTreeView.Size = new System.Drawing.Size(405, 184);
             this.filteredAppsTreeView.TabIndex = 0;
             this.filteredAppsTreeView.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.filteredAppsTreeView_NodeMouseClick);
             this.filteredAppsTreeView.DragDrop += new System.Windows.Forms.DragEventHandler(this.filteredAppsTreeView_DragDrop);
@@ -84,7 +90,7 @@
             // startFilterButton
             // 
             this.startFilterButton.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.startFilterButton.Location = new System.Drawing.Point(12, 226);
+            this.startFilterButton.Location = new System.Drawing.Point(6, 3);
             this.startFilterButton.Name = "startFilterButton";
             this.startFilterButton.Size = new System.Drawing.Size(75, 37);
             this.startFilterButton.TabIndex = 1;
@@ -95,7 +101,7 @@
             // stopFilterButton
             // 
             this.stopFilterButton.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.stopFilterButton.Location = new System.Drawing.Point(93, 226);
+            this.stopFilterButton.Location = new System.Drawing.Point(87, 3);
             this.stopFilterButton.Name = "stopFilterButton";
             this.stopFilterButton.Size = new System.Drawing.Size(75, 37);
             this.stopFilterButton.TabIndex = 2;
@@ -106,7 +112,7 @@
             // addFolderButton
             // 
             this.addFolderButton.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.addFolderButton.Location = new System.Drawing.Point(174, 226);
+            this.addFolderButton.Location = new System.Drawing.Point(168, 3);
             this.addFolderButton.Name = "addFolderButton";
             this.addFolderButton.Size = new System.Drawing.Size(75, 37);
             this.addFolderButton.TabIndex = 3;
@@ -117,7 +123,7 @@
             // addAppButton
             // 
             this.addAppButton.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.addAppButton.Location = new System.Drawing.Point(255, 226);
+            this.addAppButton.Location = new System.Drawing.Point(249, 3);
             this.addAppButton.Name = "addAppButton";
             this.addAppButton.Size = new System.Drawing.Size(75, 37);
             this.addAppButton.TabIndex = 4;
@@ -128,7 +134,7 @@
             // refreshSettingsButton
             // 
             this.refreshSettingsButton.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.refreshSettingsButton.Location = new System.Drawing.Point(336, 226);
+            this.refreshSettingsButton.Location = new System.Drawing.Point(330, 3);
             this.refreshSettingsButton.Name = "refreshSettingsButton";
             this.refreshSettingsButton.Size = new System.Drawing.Size(75, 37);
             this.refreshSettingsButton.TabIndex = 5;
@@ -141,9 +147,9 @@
             this.mainStatusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.filterStatusLabel,
             this.settingsStatusLabel});
-            this.mainStatusStrip.Location = new System.Drawing.Point(0, 275);
+            this.mainStatusStrip.Location = new System.Drawing.Point(0, 337);
             this.mainStatusStrip.Name = "mainStatusStrip";
-            this.mainStatusStrip.Size = new System.Drawing.Size(425, 24);
+            this.mainStatusStrip.Size = new System.Drawing.Size(484, 24);
             this.mainStatusStrip.TabIndex = 6;
             this.mainStatusStrip.Text = "MAIN STATUS STRIP";
             // 
@@ -203,7 +209,7 @@
             this.helpToolStripMenuItem});
             this.mainMenuStrip.Location = new System.Drawing.Point(0, 0);
             this.mainMenuStrip.Name = "mainMenuStrip";
-            this.mainMenuStrip.Size = new System.Drawing.Size(425, 24);
+            this.mainMenuStrip.Size = new System.Drawing.Size(484, 24);
             this.mainMenuStrip.TabIndex = 7;
             this.mainMenuStrip.Text = "menuStrip1";
             // 
@@ -227,7 +233,7 @@
             this.stopToolStripMenuItem,
             this.refreshSettingsToolStripMenuItem});
             this.netfilterToolStripMenuItem1.Name = "netfilterToolStripMenuItem1";
-            this.netfilterToolStripMenuItem1.Size = new System.Drawing.Size(152, 22);
+            this.netfilterToolStripMenuItem1.Size = new System.Drawing.Size(132, 22);
             this.netfilterToolStripMenuItem1.Text = "Netfilter";
             // 
             // startToolStripMenuItem
@@ -256,7 +262,7 @@
             this.settingsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.generateSelfsignedCertificateToolStripMenuItem});
             this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this.settingsToolStripMenuItem.Text = "Settings";
             // 
             // generateSelfsignedCertificateToolStripMenuItem
@@ -272,20 +278,20 @@
             this.applicationLogToolStripMenuItem,
             this.netfilterLogToolStripMenuItem});
             this.readLogsToolStripMenuItem.Name = "readLogsToolStripMenuItem";
-            this.readLogsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.readLogsToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this.readLogsToolStripMenuItem.Text = "Read logs";
             // 
             // applicationLogToolStripMenuItem
             // 
             this.applicationLogToolStripMenuItem.Name = "applicationLogToolStripMenuItem";
-            this.applicationLogToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.applicationLogToolStripMenuItem.Size = new System.Drawing.Size(135, 22);
             this.applicationLogToolStripMenuItem.Text = "Application";
             this.applicationLogToolStripMenuItem.Click += new System.EventHandler(this.applicationLogToolStripMenuItem_Click);
             // 
             // netfilterLogToolStripMenuItem
             // 
             this.netfilterLogToolStripMenuItem.Name = "netfilterLogToolStripMenuItem";
-            this.netfilterLogToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.netfilterLogToolStripMenuItem.Size = new System.Drawing.Size(135, 22);
             this.netfilterLogToolStripMenuItem.Text = "Netfilter";
             this.netfilterLogToolStripMenuItem.Click += new System.EventHandler(this.netfilterLogToolStripMenuItem_Click);
             // 
@@ -296,7 +302,7 @@
             this.addAppToolStripMenuItem,
             this.clearListToolStripMenuItem});
             this.clearProcessesListToolStripMenuItem.Name = "clearProcessesListToolStripMenuItem";
-            this.clearProcessesListToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.clearProcessesListToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this.clearProcessesListToolStripMenuItem.Text = "Process list";
             // 
             // addCatalogToolStripMenuItem
@@ -323,12 +329,12 @@
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(149, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(129, 6);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this.exitToolStripMenuItem.Text = "Exit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
@@ -346,31 +352,53 @@
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(113, 22);
             this.aboutToolStripMenuItem.Text = "About..";
             // 
+            // filteredAppsTreeViewContainerGroupBox
+            // 
+            this.filteredAppsTreeViewContainerGroupBox.Controls.Add(this.filteredAppsTreeView);
+            this.filteredAppsTreeViewContainerGroupBox.Location = new System.Drawing.Point(8, 27);
+            this.filteredAppsTreeViewContainerGroupBox.Name = "filteredAppsTreeViewContainerGroupBox";
+            this.filteredAppsTreeViewContainerGroupBox.Size = new System.Drawing.Size(411, 203);
+            this.filteredAppsTreeViewContainerGroupBox.TabIndex = 8;
+            this.filteredAppsTreeViewContainerGroupBox.TabStop = false;
+            this.filteredAppsTreeViewContainerGroupBox.Text = "Filtered apps";
+            // 
+            // actionButtonsContainerPanel
+            // 
+            this.actionButtonsContainerPanel.BackColor = System.Drawing.SystemColors.Control;
+            this.actionButtonsContainerPanel.Controls.Add(this.startFilterButton);
+            this.actionButtonsContainerPanel.Controls.Add(this.stopFilterButton);
+            this.actionButtonsContainerPanel.Controls.Add(this.addFolderButton);
+            this.actionButtonsContainerPanel.Controls.Add(this.addAppButton);
+            this.actionButtonsContainerPanel.Controls.Add(this.refreshSettingsButton);
+            this.actionButtonsContainerPanel.Location = new System.Drawing.Point(8, 236);
+            this.actionButtonsContainerPanel.Name = "actionButtonsContainerPanel";
+            this.actionButtonsContainerPanel.Size = new System.Drawing.Size(411, 45);
+            this.actionButtonsContainerPanel.TabIndex = 9;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(425, 299);
+            this.ClientSize = new System.Drawing.Size(484, 361);
+            this.Controls.Add(this.actionButtonsContainerPanel);
+            this.Controls.Add(this.filteredAppsTreeViewContainerGroupBox);
             this.Controls.Add(this.mainStatusStrip);
             this.Controls.Add(this.mainMenuStrip);
-            this.Controls.Add(this.refreshSettingsButton);
-            this.Controls.Add(this.addAppButton);
-            this.Controls.Add(this.addFolderButton);
-            this.Controls.Add(this.stopFilterButton);
-            this.Controls.Add(this.startFilterButton);
-            this.Controls.Add(this.filteredAppsTreeView);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.mainMenuStrip;
             this.Name = "MainForm";
             this.Text = "Network Filter";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Load += new System.EventHandler(this.MainForm_Load);
+            this.Resize += new System.EventHandler(this.MainForm_Resize);
             this.mainStatusStrip.ResumeLayout(false);
             this.mainStatusStrip.PerformLayout();
             this.folderContextMenuStrip.ResumeLayout(false);
             this.fileContextMenuStrip.ResumeLayout(false);
             this.mainMenuStrip.ResumeLayout(false);
             this.mainMenuStrip.PerformLayout();
+            this.filteredAppsTreeViewContainerGroupBox.ResumeLayout(false);
+            this.actionButtonsContainerPanel.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -412,6 +440,8 @@
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
+        private System.Windows.Forms.GroupBox filteredAppsTreeViewContainerGroupBox;
+        private System.Windows.Forms.Panel actionButtonsContainerPanel;
     }
 }
 
