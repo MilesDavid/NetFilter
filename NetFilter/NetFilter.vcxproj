@@ -22,13 +22,13 @@
     <ProjectGuid>{C0338870-B1AB-42C4-BDD2-93FB8BC56C20}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>NetFilter</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
     <CLRSupport>false</CLRSupport>
   </PropertyGroup>
@@ -72,23 +72,23 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)_Bin\$(Configuration)</OutDir>
-    <IntDir>$(SolutionDir)_Temp\$(Configuration)</IntDir>
+    <OutDir>$(SolutionDir)$(ProjectName)\_Bin\$(Configuration)</OutDir>
+    <IntDir>$(SolutionDir)$(ProjectName)\_Temp\$(Configuration)</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)_Bin\$(Configuration)</OutDir>
-    <IntDir>$(SolutionDir)_Temp\$(Configuration)</IntDir>
+    <OutDir>$(SolutionDir)$(ProjectName)\_Bin\$(Configuration)</OutDir>
+    <IntDir>$(SolutionDir)$(ProjectName)\_Temp\$(Configuration)</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)_Bin\$(Configuration)</OutDir>
-    <IntDir>$(SolutionDir)_Temp\$(Configuration)</IntDir>
+    <OutDir>$(SolutionDir)$(ProjectName)\_Bin\$(Configuration)</OutDir>
+    <IntDir>$(SolutionDir)$(ProjectName)\_Temp\$(Configuration)</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)_Bin\$(Configuration)</OutDir>
-    <IntDir>$(SolutionDir)_Temp\$(Configuration)</IntDir>
+    <OutDir>$(SolutionDir)$(ProjectName)\_Bin\$(Configuration)</OutDir>
+    <IntDir>$(SolutionDir)$(ProjectName)\_Temp\$(Configuration)</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -108,8 +108,10 @@
       <AssemblyDebug>true</AssemblyDebug>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>xcopy "$(TargetPath)" "$(SolutionDir)_Distr\$(Configuration)\" /E /Y
+xcopy "$(ProjectDir)3rd\nfsdk2\bin\dll\$(Platform)\*" "$(SolutionDir)_Distr\$(Configuration)\" /E /Y
+xcopy "$(ProjectDir)3rd\nfsdk2\bin\exe\$(Platform)\*" "$(SolutionDir)_Distr\$(Configuration)\" /E /Y
+xcopy "$(ProjectDir)3rd\nfsdk2\bin\drivers" "$(SolutionDir)_Distr\$(Configuration)\drivers\" /E /Y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -127,6 +129,12 @@
       <AdditionalDependencies>Psapi.lib;nfapi.lib;ProtocolFilters.lib;Ws2_32.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\3rd\nfsdk2\lib\release\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy "$(TargetPath)" "$(SolutionDir)_Distr\$(Configuration)\" /E /Y
+xcopy "$(ProjectDir)3rd\nfsdk2\bin\dll\$(Platform)\*" "$(SolutionDir)_Distr\$(Configuration)\" /E /Y
+xcopy "$(ProjectDir)3rd\nfsdk2\bin\exe\$(Platform)\*" "$(SolutionDir)_Distr\$(Configuration)\" /E /Y
+xcopy "$(ProjectDir)3rd\nfsdk2\bin\drivers" "$(SolutionDir)_Distr\$(Configuration)\drivers\" /E /Y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -149,8 +157,10 @@
       <ShowProgress>NotSet</ShowProgress>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>xcopy "$(TargetPath)" "$(SolutionDir)_Distr\$(Configuration)\" /E /Y
+xcopy "$(ProjectDir)3rd\nfsdk2\bin\dll\$(Platform)\*" "$(SolutionDir)_Distr\$(Configuration)\" /E /Y
+xcopy "$(ProjectDir)3rd\nfsdk2\bin\exe\$(Platform)\*" "$(SolutionDir)_Distr\$(Configuration)\" /E /Y
+xcopy "$(ProjectDir)3rd\nfsdk2\bin\drivers" "$(SolutionDir)_Distr\$(Configuration)\drivers\" /E /Y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -172,12 +182,19 @@
       <AdditionalDependencies>Psapi.lib;nfapi.lib;ProtocolFilters.lib;Ws2_32.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(ProjectName)\3rd\nfsdk2\lib\release\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy "$(TargetPath)" "$(SolutionDir)_Distr\$(Configuration)\" /E /Y
+xcopy "$(ProjectDir)3rd\nfsdk2\bin\dll\$(Platform)\*" "$(SolutionDir)_Distr\$(Configuration)\" /E /Y
+xcopy "$(ProjectDir)3rd\nfsdk2\bin\exe\$(Platform)\*" "$(SolutionDir)_Distr\$(Configuration)\" /E /Y
+xcopy "$(ProjectDir)3rd\nfsdk2\bin\drivers" "$(SolutionDir)_Distr\$(Configuration)\drivers\" /E /Y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AuxiliaryFuncs.h" />
+    <ClInclude Include="EntryPoint.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="NetFilter.h" />
     <ClInclude Include="NetFilterSettings.h" />

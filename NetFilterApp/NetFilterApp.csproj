@@ -149,7 +149,8 @@
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(TargetDir)*" "$(SolutionDir)_Bin\$(Configuration)" /s /i /Y</PostBuildEvent>
+    <PostBuildEvent>xcopy "$(TargetDir)*.exe" "$(SolutionDir)_Distr\$(Configuration)\" /E  /Y
+xcopy "$(TargetDir)*.dll" "$(SolutionDir)_Distr\$(Configuration)\" /E  /Y</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

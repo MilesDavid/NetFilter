@@ -5,39 +5,59 @@ namespace NetFilterApp
 {
     public static class NetFilterWrap
     {
-        public static IntPtr NetMonCreate()
+        public static IntPtr Create()
         {
             return SafeNativeMethods.NetMonCreate();
         }
 
-        public static void NetMonFree(IntPtr pNetMon)
+        public static void Free(IntPtr pNetMon)
         {
             SafeNativeMethods.NetMonFree(pNetMon);
         }
 
-        public static bool NetMonStart(IntPtr pNetMon)
+        public static bool Start(IntPtr pNetMon)
         {
             return Convert.ToBoolean(SafeNativeMethods.NetMonStart(pNetMon));
         }
 
-        public static bool NetMonIsStarted(IntPtr pNetMon)
+        public static bool Started(IntPtr pNetMon)
         {
             return Convert.ToBoolean(SafeNativeMethods.NetMonIsStarted(pNetMon));
         }
 
-        public static void NetMonStop(IntPtr pNetMon)
+        public static void Stop(IntPtr pNetMon)
         {
             SafeNativeMethods.NetMonStop(pNetMon);
         }
 
-        public static void NetMonRefreshSetting(IntPtr pNetMon)
+        public static void RefreshSetting(IntPtr pNetMon)
         {
             SafeNativeMethods.NetMonRefreshSettings(pNetMon);
         }
 
-        public static void NetMonLogPath(IntPtr pNetMon, byte[] logPath, uint size)
+        public static void LogPath(IntPtr pNetMon, byte[] logPath, uint size)
         {
             SafeNativeMethods.NetMonLogPath(pNetMon, logPath, size);
+        }
+
+        public static void DeleteHttpRequestDumpFolder(IntPtr pNetMon)
+        {
+            SafeNativeMethods.NetMonDeleteHttpRequestDumpFolder(pNetMon);
+        }
+
+        public static void DeleteHttpResponseDumpFolder(IntPtr pNetMon)
+        {
+            SafeNativeMethods.NetMonDeleteHttpResponseDumpFolder(pNetMon);
+        }
+
+        public static void DeleteRawInDumpFolder(IntPtr pNetMon)
+        {
+            SafeNativeMethods.NetMonDeleteRawInDumpFolder(pNetMon);
+        }
+
+        public static void DeleteRawOutDumpFolder(IntPtr pNetMon)
+        {
+            SafeNativeMethods.NetMonDeleteRawOutDumpFolder(pNetMon);
         }
     }
 
@@ -63,5 +83,17 @@ namespace NetFilterApp
 
         [DllImport("NetFilter.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void NetMonLogPath(IntPtr pNetMon, byte[] logPath, uint size);
+
+        [DllImport("NetFilter.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void NetMonDeleteHttpRequestDumpFolder(IntPtr pNetMon);
+
+        [DllImport("NetFilter.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void NetMonDeleteHttpResponseDumpFolder(IntPtr pNetMon);
+
+        [DllImport("NetFilter.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void NetMonDeleteRawInDumpFolder(IntPtr pNetMon);
+
+        [DllImport("NetFilter.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void NetMonDeleteRawOutDumpFolder(IntPtr pNetMon);
     }
 }

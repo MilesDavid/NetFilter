@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace NetFilterApp
 {
-    public partial class MainForm : Form
+    public partial class MainForm : Form, IDisposable
     {
         #region Fields
 
@@ -267,7 +267,7 @@ namespace NetFilterApp
         #region Netfilter methods
         void StartNetFilter()
         {
-            if (RefreshSettings() && NetFilterWrap.NetMonStart(netMon))
+            if (RefreshSettings() && NetFilterWrap.Start(netMon))
             {
                 updateFormItems(NetFilterStatus.Started);
                 logger.write("Netfilter started..");
@@ -281,9 +281,9 @@ namespace NetFilterApp
 
         void StopNetfilter()
         {
-            if (NetFilterWrap.NetMonIsStarted(netMon))
+            if (NetFilterWrap.Started(netMon))
             {
-                NetFilterWrap.NetMonStop(netMon);
+                NetFilterWrap.Stop(netMon);
                 updateFormItems(NetFilterStatus.Stopped);
 
                 logger.write("Netfilter has been stopped..");
@@ -305,10 +305,9 @@ namespace NetFilterApp
             }
             else
             {
-                bool netMonStarted = NetFilterWrap.NetMonIsStarted(netMon);
-                if (NetFilterWrap.NetMonIsStarted(netMon))
+                if (NetFilterWrap.Started(netMon))
                 {
-                    NetFilterWrap.NetMonRefreshSetting(netMon);
+                    NetFilterWrap.RefreshSetting(netMon);
                     logger.write("Settings has been refreshed..");
                 }
                 else
@@ -401,7 +400,7 @@ namespace NetFilterApp
 
             try
             {
-                netMon = NetFilterWrap.NetMonCreate();
+                netMon = NetFilterWrap.Create();
                 isInit = (netMon != IntPtr.Zero);
             }
             catch (Exception e)
@@ -412,31 +411,7 @@ namespace NetFilterApp
 
         ~MainForm()
         {
-            if (netMonStarted)
-            {
-                try
-                {
-                    NetFilterWrap.NetMonStop(netMon);
-                }
-                catch (Exception e)
-                {
-                    logger.write(string.Format("{0} {1}", e.GetType(), e.Message));
-                }
-            }
-
-            if (netMon != null)
-            {
-                try
-                {
-                    NetFilterWrap.NetMonFree(netMon);
-                }
-                catch (Exception e)
-                {
-                    logger.write(string.Format("{0} {1}", e.GetType(), e.Message));
-                }
-            }
-
-            netMon = IntPtr.Zero;
+            Dispose(false);
         }
 
         #endregion
@@ -479,6 +454,8 @@ namespace NetFilterApp
 
         void updateFormItems(NetFilterStatus status)
         {
+            DeleteEmptyDirectoryNodes();
+
             switch (status)
             {
                 case NetFilterStatus.NotStarted:
@@ -491,25 +468,34 @@ namespace NetFilterApp
                     refreshSettingsButton.Enabled = false;
                     refreshSettingsToolStripMenuItem.Enabled = false;
 
+                    clearDumpsToolStripMenuItem.Enabled = true;
+
                     filterStatusLabel.Text = "Filter not ready";
                     break;
 
                 case NetFilterStatus.Ready:
-                    startFilterButton.Enabled = true;
-                    startToolStripMenuItem.Enabled = true;
+                    if (root.Nodes.Count > 0)
+                    {
+                        startFilterButton.Enabled = true;
+                        startToolStripMenuItem.Enabled = true;
 
-                    stopFilterButton.Enabled = false;
-                    stopToolStripMenuItem.Enabled = false;
+                        stopFilterButton.Enabled = false;
+                        stopToolStripMenuItem.Enabled = false;
 
-                    refreshSettingsButton.Enabled = false;
-                    refreshSettingsToolStripMenuItem.Enabled = false;
+                        refreshSettingsButton.Enabled = false;
+                        refreshSettingsToolStripMenuItem.Enabled = false;
 
-                    filterStatusLabel.Text = "Filter ready to start";
+                        clearDumpsToolStripMenuItem.Enabled = true;
+
+                        filterStatusLabel.Text = "Filter ready to start";
+                    }
                     break;
 
                 case NetFilterStatus.DisableRefreshing:
                     refreshSettingsButton.Enabled = false;
                     refreshSettingsToolStripMenuItem.Enabled = false;
+
+                    clearDumpsToolStripMenuItem.Enabled = true;
                     break;
 
                 case NetFilterStatus.Started:
@@ -522,44 +508,56 @@ namespace NetFilterApp
                     refreshSettingsButton.Enabled = true;
                     refreshSettingsToolStripMenuItem.Enabled = true;
 
+                    clearDumpsToolStripMenuItem.Enabled = false;
+
                     filterStatusLabel.Text = "Filter started..";
                     break;
 
                 case NetFilterStatus.Stopped:
-                    startFilterButton.Enabled = true;
-                    startToolStripMenuItem.Enabled = true;
+                    if (root.Nodes.Count > 0)
+                    {
+                        startFilterButton.Enabled = true;
+                        startToolStripMenuItem.Enabled = true;
 
-                    stopFilterButton.Enabled = false;
-                    stopToolStripMenuItem.Enabled = false;
+                        stopFilterButton.Enabled = false;
+                        stopToolStripMenuItem.Enabled = false;
 
-                    refreshSettingsButton.Enabled = false;
-                    refreshSettingsToolStripMenuItem.Enabled = false;
+                        refreshSettingsButton.Enabled = false;
+                        refreshSettingsToolStripMenuItem.Enabled = false;
 
-                    filterStatusLabel.Text = "Filter stopped..";
+                        clearDumpsToolStripMenuItem.Enabled = true;
+
+                        filterStatusLabel.Text = "Filter stopped..";
+                    }
                     break;
 
                 case NetFilterStatus.Refreshed:
                     refreshSettingsButton.Enabled = true;
                     refreshSettingsToolStripMenuItem.Enabled = true;
 
+                    clearDumpsToolStripMenuItem.Enabled = false;
+
                     settingsStatusLabel.Text = "Settings refreshed";
                     break;
 
                 case NetFilterStatus.Failed:
-                    startFilterButton.Enabled = true;
-                    startToolStripMenuItem.Enabled = true;
+                    if (root.Nodes.Count > 0)
+                    {
+                        startFilterButton.Enabled = true;
+                        startToolStripMenuItem.Enabled = true;
 
-                    stopFilterButton.Enabled = false;
-                    stopToolStripMenuItem.Enabled = false;
+                        stopFilterButton.Enabled = false;
+                        stopToolStripMenuItem.Enabled = false;
 
-                    refreshSettingsButton.Enabled = false;
-                    refreshSettingsToolStripMenuItem.Enabled = false;
+                        refreshSettingsButton.Enabled = false;
+                        refreshSettingsToolStripMenuItem.Enabled = false;
 
-                    filterStatusLabel.Text = "Filter fails during start..";
+                        clearDumpsToolStripMenuItem.Enabled = true;
+
+                        filterStatusLabel.Text = "Filter fails during start..";
+                    }
                     break;
             }
-
-            DeleteEmptyDirectoryNodes();
         }
 
         private void AddDirectoryHandler()
@@ -567,7 +565,7 @@ namespace NetFilterApp
             DialogResult dialogResult = folderBrowserDialog.ShowDialog();
             if (dialogResult == DialogResult.OK)
             {
-                NetFilterStatus status = (NetFilterWrap.NetMonIsStarted(netMon))
+                NetFilterStatus status = (NetFilterWrap.Started(netMon))
                     ? NetFilterStatus.Refreshed : NetFilterStatus.Ready;
 
                 AddDirectory(folderBrowserDialog.SelectedPath);
@@ -581,7 +579,7 @@ namespace NetFilterApp
             {
                 if (dialogResult == DialogResult.OK)
                 {
-                    NetFilterStatus status = (NetFilterWrap.NetMonIsStarted(netMon))
+                    NetFilterStatus status = (NetFilterWrap.Started(netMon))
                         ? NetFilterStatus.Refreshed : NetFilterStatus.Ready;
                     foreach (var process in openFileDialog.FileNames)
                     {
@@ -629,7 +627,7 @@ namespace NetFilterApp
             foreach (string item in draggedItems)
             {
                 FileAttributes attr = File.GetAttributes(item);
-                NetFilterStatus status = (NetFilterWrap.NetMonIsStarted(netMon))
+                NetFilterStatus status = (NetFilterWrap.Started(netMon))
                     ? NetFilterStatus.Refreshed : NetFilterStatus.Ready;
 
                 if ((attr & FileAttributes.Directory) == FileAttributes.Directory)
@@ -674,7 +672,7 @@ namespace NetFilterApp
             DeleteSelectedTreeItem(filteredAppsTreeView.SelectedNode);
             if (settings.TracingProcesses.Count == 0)
             {
-                NetFilterStatus status = (NetFilterWrap.NetMonIsStarted(netMon))
+                NetFilterStatus status = (NetFilterWrap.Started(netMon))
                     ? NetFilterStatus.DisableRefreshing : NetFilterStatus.NotStarted;
                 updateFormItems(status);
             }
@@ -685,7 +683,7 @@ namespace NetFilterApp
             DeleteSelectedTreeItem(filteredAppsTreeView.SelectedNode);
             if (settings.TracingProcesses.Count == 0)
             {
-                NetFilterStatus status = (NetFilterWrap.NetMonIsStarted(netMon))
+                NetFilterStatus status = (NetFilterWrap.Started(netMon))
                     ? NetFilterStatus.DisableRefreshing : NetFilterStatus.NotStarted;
                 updateFormItems(status);
             }
@@ -728,7 +726,7 @@ namespace NetFilterApp
             uint bufSize = 1024;
             byte[] buf = new byte[bufSize];
 
-            NetFilterWrap.NetMonLogPath(netMon, buf, bufSize);
+            NetFilterWrap.LogPath(netMon, buf, bufSize);
 
             string logPath = System.Text.Encoding.ASCII.GetString(buf).Split('\0')[0];
             logForm.OpenLogPath(logPath);
@@ -765,6 +763,48 @@ namespace NetFilterApp
         {
             Close();
         }
+
+        #region Dumps
+        private void clearHttpRequestFolderToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            NetFilterWrap.DeleteHttpRequestDumpFolder(netMon);
+        }
+
+        private void clearHttpResponseToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            NetFilterWrap.DeleteHttpResponseDumpFolder(netMon);
+        }
+
+        private void clearHttpAllFoldersToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            NetFilterWrap.DeleteHttpRequestDumpFolder(netMon);
+            NetFilterWrap.DeleteHttpResponseDumpFolder(netMon);
+        }
+
+        private void clearRawInFolderToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            NetFilterWrap.DeleteRawInDumpFolder(netMon);
+        }
+
+        private void clearRawOutFolderToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            NetFilterWrap.DeleteRawOutDumpFolder(netMon);
+        }
+
+        private void clearRawAllFoldersToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            NetFilterWrap.DeleteRawInDumpFolder(netMon);
+            NetFilterWrap.DeleteRawOutDumpFolder(netMon);
+        }
+
+        private void clearAllDumpsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            NetFilterWrap.DeleteHttpRequestDumpFolder(netMon);
+            NetFilterWrap.DeleteHttpResponseDumpFolder(netMon);
+            NetFilterWrap.DeleteRawInDumpFolder(netMon);
+            NetFilterWrap.DeleteRawOutDumpFolder(netMon);
+        }
+        #endregion
 
         #endregion
     }

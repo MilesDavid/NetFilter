@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace NetFilterApp
 {
-    class Logger
+    class Logger : IDisposable
     {
         string logPath;
         StreamWriter logFileStream;
@@ -31,8 +31,23 @@ namespace NetFilterApp
             }
         }
 
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                logFileStream.Close();
+            }
+        }
+
         ~Logger()
         {
+            Dispose(false);
         }
 
         public string LogPath

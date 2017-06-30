@@ -16,12 +16,16 @@ private:
 	bool removeDriver();
 #endif
 
+	void DeleteFolderAndLog(const std::string & path);
+	void CreateMiscFolders();
+
 	Logger* m_logger;
 	NetFilter* m_netfilter;
 	NetFilterSettings* m_settings;
 
 	bool m_Init;
 	bool m_NetFilterStarted;
+	std::map<std::string, std::string> m_MiscFolders;
 public:
 	NetMon();
 	~NetMon();
@@ -29,11 +33,18 @@ public:
 	bool Start();
 	void Stop();
 	void RefreshSettings();
+
 	const bool NetfilterStarted() const {
 		return m_NetFilterStarted;
 	}
+
 	const std::string LogPath() const {
 		return m_logger->logPath();
 	}
+
+	void deleteHttpRequestDumpFolder();
+	void deleteHttpResponseDumpFolder();
+	void deleteRawInDumpFolder();
+	void deleteRawOutDumpFolder();
 };
 

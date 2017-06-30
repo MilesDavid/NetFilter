@@ -1,5 +1,4 @@
-// NetFilter.cpp: определяет точку входа для консольного приложения.
-//
+// NetFilter.cpp: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ//
 
 #include "stdafx.h"
 #include "NetMon.h"
@@ -26,6 +25,7 @@ extern "C" {
 			netMon = nullptr;
 		}
 	}
+
 	NETMON_API int NETMON_CC NetMonStart(NetMon* netMon) {
 		return (netMon && netMon->Start()) ? 1 : 0;
 	}
@@ -36,7 +36,24 @@ extern "C" {
 	NETMON_API void NETMON_CC NetMonRefreshSettings(NetMon* netMon) { if (netMon) netMon->RefreshSettings(); }
 	NETMON_API void NETMON_CC NetMonLogPath(NetMon* netMon, char* buf, size_t size) {
 		if (netMon) { strcpy_s(buf, size, netMon->LogPath().c_str()); }
+}
+
+#pragma region Dump folders
+
+	NETMON_API void NETMON_CC NetMonDeleteHttpRequestDumpFolder(NetMon* netMon) {
+		if (netMon) { netMon->deleteHttpRequestDumpFolder(); }
 	}
+	NETMON_API void NETMON_CC NetMonDeleteHttpResponseDumpFolder(NetMon* netMon) {
+		if (netMon) { netMon->deleteHttpResponseDumpFolder(); }
+	}
+	NETMON_API void NETMON_CC NetMonDeleteRawInDumpFolder(NetMon* netMon) {
+		if (netMon) { netMon->deleteRawInDumpFolder(); }
+	}
+	NETMON_API void NETMON_CC NetMonDeleteRawOutDumpFolder(NetMon* netMon) {
+		if (netMon) { netMon->deleteRawOutDumpFolder(); }
+	}
+
+#pragma endregion
 
 #ifdef __cplusplus
 }

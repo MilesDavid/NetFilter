@@ -19,7 +19,6 @@ bool NetMon::Init() {
 				m_logger = new Logger(logFileName);
 			}
 			else {
-				// write to log
 				return false;
 			}
 
@@ -44,45 +43,15 @@ bool NetMon::Init() {
 
 #pragma region Creating folders
 		//Creating folders
-		std::string rawInDumpFolder = m_settings->dumpPath() + "\\RAW\\in";
-		if (AuxiliaryFuncs::forceDirectories(rawInDumpFolder)) {
-			// write to log
-			m_logger->write("Folder " + rawInDumpFolder + " has been created", __FUNCTION__);
-			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, rawInDumpFolder.c_str());
-		}
+		m_MiscFolders.insert(std::make_pair("DumpRawIn", m_settings->dumpPath() + "\\RAW\\in"));
+		m_MiscFolders.insert(std::make_pair("DumpRawOut", m_settings->dumpPath() + "\\RAW\\out"));
+		m_MiscFolders.insert(std::make_pair("DumpHttpRequest", m_settings->dumpPath() + "\\HTTP\\request"));
+		m_MiscFolders.insert(std::make_pair("DumpHttpResponse", m_settings->dumpPath() + "\\HTTP\\response"));
+		m_MiscFolders.insert(std::make_pair("CertPath", m_settings->certPath()));
 
-
-		std::string rawOutDumpFolder = m_settings->dumpPath() + "\\RAW\\out";
-		if (AuxiliaryFuncs::forceDirectories(rawOutDumpFolder)) {
-			// write to log
-			m_logger->write("Folder " + rawOutDumpFolder + " has been created", __FUNCTION__);
-			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, rawOutDumpFolder.c_str());
-		}
-
-		//Creating folders
-		std::string httpRequestDumpFolder = m_settings->dumpPath() + "\\HTTP\\request";
-		if (AuxiliaryFuncs::forceDirectories(httpRequestDumpFolder)) {
-			// write to log
-			m_logger->write("Folder " + httpRequestDumpFolder + " has been created", __FUNCTION__);
-			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, httpRequestDumpFolder.c_str());
-		}
-
-
-		std::string httpResponseDumpFolder = m_settings->dumpPath() + "\\HTTP\\response";
-		if (AuxiliaryFuncs::forceDirectories(httpResponseDumpFolder)) {
-			// write to log
-			m_logger->write("Folder " + httpResponseDumpFolder + " has been created", __FUNCTION__);
-			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, httpResponseDumpFolder.c_str());
-		}
-
-
-		if (AuxiliaryFuncs::forceDirectories(m_settings->certPath().c_str())) {
-			// write to log
-			m_logger->write("Folder " + m_settings->certPath() + " has been created", __FUNCTION__);
-
-			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, m_settings->certPath().c_str());
-		}
+		CreateMiscFolders();
 #pragma endregion
+
 #ifdef ENABLE_DRIVER_COPYING
 
 		if (!copyDriver()) {
@@ -255,7 +224,8 @@ NetMon::NetMon() :
 	m_netfilter(nullptr),
 	m_settings(nullptr),
 	m_Init(false),
-	m_NetFilterStarted(false)
+	m_NetFilterStarted(false),
+	m_MiscFolders()
 {
 	m_Init = Init();
 }
@@ -280,6 +250,9 @@ bool NetMon::Start() {
 			m_logger->write("Couldn't read settings", __FUNCTION__);
 			return false;
 		}
+
+		m_logger->write("Creating cert and dump folders", __FUNCTION__);
+		CreateMiscFolders();
 
 		if (m_netfilter == nullptr) {
 			m_netfilter = new NetFilter(m_settings, m_logger);
@@ -359,3 +332,41 @@ void NetMon::RefreshSettings() {
 	m_netfilter->refreshFilters();
 	m_logger->write("Settings updated..", __FUNCTION__);
 }
+void NetMon::CreateMiscFolders() {
+	for each (auto folder in m_MiscFolders)
+	{
+		if (AuxiliaryFuncs::forceDirectories(folder.second)) {
+			// write to log
+			m_logger->write("Folder " + folder.second + " has been created", __FUNCTION__);
+			printf_s("[%s] Folder %s has been created\n", __FUNCTION__, folder.second.c_str());
+		}
+	}
+}
+
+void NetMon::DeleteFolderAndLog(const std::string& path) {
+	if (RemoveDirectory(path.c_str())) {
+		m_logger->write("Folder " + path + " has been deleted.", __FUNCTION__);
+	}
+	else {
+		m_logger->write(
+			"Couldn't delete folder: " + path + " Error: " + std::to_string(GetLastError()),
+			__FUNCTION__);
+	}
+}
+
+void NetMon::deleteHttpRequestDumpFolder() {
+	DeleteFolderAndLog(m_MiscFolders["DumpHttpRequest"]);
+}
+
+void NetMon::deleteHttpResponseDumpFolder() {
+	DeleteFolderAndLog(m_MiscFolders["DumpHttpResponse"]);
+}
+
+void NetMon::deleteRawInDumpFolder() {
+	DeleteFolderAndLog(m_MiscFolders["DumpRawIn"]);
+}
+
+void NetMon::deleteRawOutDumpFolder() {
+	DeleteFolderAndLog(m_MiscFolders["DumpRawOut"]);
+}
+

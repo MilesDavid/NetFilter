@@ -1,4 +1,6 @@
-﻿namespace NetFilterApp
+﻿using System;
+
+namespace NetFilterApp
 {
     partial class MainForm
     {
@@ -15,6 +17,34 @@
         {
             if (disposing && (components != null))
             {
+                #region Custom disposing
+                if (netMonStarted)
+                {
+                    try
+                    {
+                        NetFilterWrap.Stop(netMon);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.write(string.Format("{0} {1}", e.GetType(), e.Message));
+                    }
+                }
+
+                if (netMon != null)
+                {
+                    try
+                    {
+                        NetFilterWrap.Free(netMon);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.write(string.Format("{0} {1}", e.GetType(), e.Message));
+                    }
+                }
+
+                netMon = IntPtr.Zero;
+                #endregion
+
                 components.Dispose();
             }
             base.Dispose(disposing);
@@ -60,10 +90,22 @@
             this.addCatalogToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addAppToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.dumpsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.clearDumpsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.httpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.clearHttpRequestFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.clearHttpResponseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.clearHttpAllFoldersToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.rawToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.clearRawInFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.clearRawOutFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.clearRawAllFoldersToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.clearAllDumpsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.abclearRawOutFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.clearToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.filteredAppsTreeViewContainerGroupBox = new System.Windows.Forms.GroupBox();
             this.actionButtonsContainerPanel = new System.Windows.Forms.Panel();
             this.mainStatusStrip.SuspendLayout();
@@ -220,6 +262,7 @@
             this.settingsToolStripMenuItem,
             this.readLogsToolStripMenuItem,
             this.clearProcessesListToolStripMenuItem,
+            this.dumpsToolStripMenuItem,
             this.toolStripMenuItem1,
             this.exitToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
@@ -233,7 +276,7 @@
             this.stopToolStripMenuItem,
             this.refreshSettingsToolStripMenuItem});
             this.netfilterToolStripMenuItem1.Name = "netfilterToolStripMenuItem1";
-            this.netfilterToolStripMenuItem1.Size = new System.Drawing.Size(132, 22);
+            this.netfilterToolStripMenuItem1.Size = new System.Drawing.Size(152, 22);
             this.netfilterToolStripMenuItem1.Text = "Netfilter";
             // 
             // startToolStripMenuItem
@@ -262,7 +305,7 @@
             this.settingsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.generateSelfsignedCertificateToolStripMenuItem});
             this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.settingsToolStripMenuItem.Text = "Settings";
             // 
             // generateSelfsignedCertificateToolStripMenuItem
@@ -278,7 +321,7 @@
             this.applicationLogToolStripMenuItem,
             this.netfilterLogToolStripMenuItem});
             this.readLogsToolStripMenuItem.Name = "readLogsToolStripMenuItem";
-            this.readLogsToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this.readLogsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.readLogsToolStripMenuItem.Text = "Read logs";
             // 
             // applicationLogToolStripMenuItem
@@ -302,7 +345,7 @@
             this.addAppToolStripMenuItem,
             this.clearListToolStripMenuItem});
             this.clearProcessesListToolStripMenuItem.Name = "clearProcessesListToolStripMenuItem";
-            this.clearProcessesListToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this.clearProcessesListToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.clearProcessesListToolStripMenuItem.Text = "Process list";
             // 
             // addCatalogToolStripMenuItem
@@ -326,31 +369,123 @@
             this.clearListToolStripMenuItem.Text = "Clear list";
             this.clearListToolStripMenuItem.Click += new System.EventHandler(this.clearListToolStripMenuItem_Click);
             // 
+            // dumpsToolStripMenuItem
+            // 
+            this.dumpsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.clearDumpsToolStripMenuItem});
+            this.dumpsToolStripMenuItem.Name = "dumpsToolStripMenuItem";
+            this.dumpsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.dumpsToolStripMenuItem.Text = "Dumps";
+            // 
+            // clearDumpsToolStripMenuItem
+            // 
+            this.clearDumpsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.httpToolStripMenuItem,
+            this.rawToolStripMenuItem,
+            this.clearAllDumpsToolStripMenuItem});
+            this.clearDumpsToolStripMenuItem.Name = "clearDumpsToolStripMenuItem";
+            this.clearDumpsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.clearDumpsToolStripMenuItem.Text = "Clear";
+            // 
+            // httpToolStripMenuItem
+            // 
+            this.httpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.clearHttpRequestFolderToolStripMenuItem,
+            this.clearHttpResponseToolStripMenuItem,
+            this.clearHttpAllFoldersToolStripMenuItem});
+            this.httpToolStripMenuItem.Name = "httpToolStripMenuItem";
+            this.httpToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.httpToolStripMenuItem.Text = "Http";
+            // 
+            // clearHttpRequestFolderToolStripMenuItem
+            // 
+            this.clearHttpRequestFolderToolStripMenuItem.Name = "clearHttpRequestFolderToolStripMenuItem";
+            this.clearHttpRequestFolderToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.clearHttpRequestFolderToolStripMenuItem.Text = "Request";
+            this.clearHttpRequestFolderToolStripMenuItem.Click += new System.EventHandler(this.clearHttpRequestFolderToolStripMenuItem_Click);
+            // 
+            // clearHttpResponseToolStripMenuItem
+            // 
+            this.clearHttpResponseToolStripMenuItem.Name = "clearHttpResponseToolStripMenuItem";
+            this.clearHttpResponseToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.clearHttpResponseToolStripMenuItem.Text = "Response";
+            this.clearHttpResponseToolStripMenuItem.Click += new System.EventHandler(this.clearHttpResponseToolStripMenuItem_Click);
+            // 
+            // clearHttpAllFoldersToolStripMenuItem
+            // 
+            this.clearHttpAllFoldersToolStripMenuItem.Name = "clearHttpAllFoldersToolStripMenuItem";
+            this.clearHttpAllFoldersToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.clearHttpAllFoldersToolStripMenuItem.Text = "All";
+            this.clearHttpAllFoldersToolStripMenuItem.Click += new System.EventHandler(this.clearHttpAllFoldersToolStripMenuItem_Click);
+            // 
+            // rawToolStripMenuItem
+            // 
+            this.rawToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.clearRawInFolderToolStripMenuItem,
+            this.clearRawOutFolderToolStripMenuItem,
+            this.clearRawAllFoldersToolStripMenuItem});
+            this.rawToolStripMenuItem.Name = "rawToolStripMenuItem";
+            this.rawToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.rawToolStripMenuItem.Text = "Raw";
+            // 
+            // clearRawInFolderToolStripMenuItem
+            // 
+            this.clearRawInFolderToolStripMenuItem.Name = "clearRawInFolderToolStripMenuItem";
+            this.clearRawInFolderToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.clearRawInFolderToolStripMenuItem.Text = "In";
+            this.clearRawInFolderToolStripMenuItem.Click += new System.EventHandler(this.clearRawInFolderToolStripMenuItem_Click);
+            // 
+            // clearRawOutFolderToolStripMenuItem
+            // 
+            this.clearRawOutFolderToolStripMenuItem.Name = "clearRawOutFolderToolStripMenuItem";
+            this.clearRawOutFolderToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.clearRawOutFolderToolStripMenuItem.Text = "Out";
+            this.clearRawOutFolderToolStripMenuItem.Click += new System.EventHandler(this.clearRawOutFolderToolStripMenuItem_Click);
+            // 
+            // clearRawAllFoldersToolStripMenuItem
+            // 
+            this.clearRawAllFoldersToolStripMenuItem.Name = "clearRawAllFoldersToolStripMenuItem";
+            this.clearRawAllFoldersToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.clearRawAllFoldersToolStripMenuItem.Text = "All";
+            this.clearRawAllFoldersToolStripMenuItem.Click += new System.EventHandler(this.clearRawAllFoldersToolStripMenuItem_Click);
+            // 
+            // clearAllDumpsToolStripMenuItem
+            // 
+            this.clearAllDumpsToolStripMenuItem.Name = "clearAllDumpsToolStripMenuItem";
+            this.clearAllDumpsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.clearAllDumpsToolStripMenuItem.Text = "All";
+            this.clearAllDumpsToolStripMenuItem.Click += new System.EventHandler(this.clearAllDumpsToolStripMenuItem_Click);
+            // 
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(129, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(149, 6);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.exitToolStripMenuItem.Text = "Exit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
             // helpToolStripMenuItem
             // 
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.aboutToolStripMenuItem});
+            this.abclearRawOutFolderToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
             this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.helpToolStripMenuItem.Text = "Help";
             // 
-            // aboutToolStripMenuItem
+            // abclearRawOutFolderToolStripMenuItem
             // 
-            this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(113, 22);
-            this.aboutToolStripMenuItem.Text = "About..";
+            this.abclearRawOutFolderToolStripMenuItem.Name = "abclearRawOutFolderToolStripMenuItem";
+            this.abclearRawOutFolderToolStripMenuItem.Size = new System.Drawing.Size(113, 22);
+            this.abclearRawOutFolderToolStripMenuItem.Text = "About..";
+            // 
+            // clearToolStripMenuItem
+            // 
+            this.clearToolStripMenuItem.Name = "clearToolStripMenuItem";
+            this.clearToolStripMenuItem.Size = new System.Drawing.Size(32, 19);
             // 
             // filteredAppsTreeViewContainerGroupBox
             // 
@@ -439,9 +574,21 @@
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem abclearRawOutFolderToolStripMenuItem;
         private System.Windows.Forms.GroupBox filteredAppsTreeViewContainerGroupBox;
         private System.Windows.Forms.Panel actionButtonsContainerPanel;
+        private System.Windows.Forms.ToolStripMenuItem clearToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem dumpsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem clearDumpsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem httpToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem clearHttpRequestFolderToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem clearHttpResponseToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem clearHttpAllFoldersToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem rawToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem clearRawInFolderToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem clearRawOutFolderToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem clearRawAllFoldersToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem clearAllDumpsToolStripMenuItem;
     }
 }
 

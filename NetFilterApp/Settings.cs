@@ -124,9 +124,11 @@ namespace NetFilterApp
             try
             {
                 using (StreamWriter streamWriter = new StreamWriter(configPath))
-                using (JsonWriter jsonWriter = new JsonTextWriter(streamWriter))
                 {
-                    jsonSerializer.Serialize(jsonWriter, config);
+                    using (JsonWriter jsonWriter = new JsonTextWriter(streamWriter))
+                    {
+                        jsonSerializer.Serialize(jsonWriter, config);
+                    }
                 }
             }
             catch(Exception e)
